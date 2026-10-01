@@ -1,0 +1,43 @@
+{
+  "name": "@bothub/web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bothub/db": "workspace:*",
+    "@bothub/core": "workspace:*",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwindcss": "latest",
+    "@tailwindcss/postcss": "latest",
+    "next-intl": "latest",
+    "next-themes": "latest",
+    "lucide-react": "latest",
+    "framer-motion": "latest",
+    "recharts": "latest",
+    "react-hook-form": "latest",
+    "@hookform/resolvers": "latest",
+    "zod": "latest",
+    "@tanstack/react-query": "latest",
+    "sonner": "latest",
+    "@radix-ui/react-dialog": "latest",
+    "@radix-ui/react-dropdown-menu": "latest",
+    "@radix-ui/react-slot": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "tailwind-merge": "latest",
+    "better-auth": "1.7.7",
+    "argon2": "latest",
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/plus-jakarta-sans": "5.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest"
+  }
+}

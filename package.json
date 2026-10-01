@@ -1,0 +1,36 @@
+{
+  "name": "bothub",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @bothub/web --filter @bothub/worker dev",
+    "build": "pnpm --filter @bothub/web build",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @bothub/db generate",
+    "db:migrate": "pnpm --filter @bothub/db migrate",
+    "db:seed": "pnpm db:migrate && pnpm --filter @bothub/db seed",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.8",
+    "typescript-eslint": "latest",
+    "typescript": "6.0.3",
+    "prettier": "latest",
+    "vitest": "latest",
+    "@playwright/test": "latest",
+    "@types/node": "latest",
+    "tsx": "latest"
+  },
+  "type": "module"
+}

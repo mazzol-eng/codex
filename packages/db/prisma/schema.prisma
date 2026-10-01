@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated"
+}
+datasource db {
+  provider = "postgresql"
+}
+model User {
+  id String @id
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  twoFactorEnabled Boolean @default(false)
+  sessions Session[]
+  accounts Account[]
+  memberships Membership[]
+  twoFactors TwoFactor[]
+  @@map("users")
+}
+model Session {
+  id String @id
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("sessions")
+}
+model Account {
+  id String @id
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+model Verification {
+  id String @id
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
+  @@map("verifications")
+}
+model TwoFactor {
+  id String @id
+  secret String
+  backupCodes String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("two_factors")
+}
+model Workspace {
+  id String @id @default(cuid())
+  name String
+  segment String
+  timeZone String @default("America/Sao_Paulo")
+  locale String @default("pt-BR")
+  plan String @default("free")
+  isDemo Boolean @default(false)
+  createdAt DateTime @default(now())
+  members Membership[]
+  bots Bot[]
+  connections Connection[]
+  contacts Contact[]
+  conversations Conversation[]
+  metrics DailyMetric[]
+  auditLogs AuditLog[]
+  @@map("workspaces")
+}
+model Membership {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  userId String
+  role String @default("owner")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([workspaceId,userId])
+  @@index([userId])
+  @@map("memberships")
+}
+model Bot {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
+  description String
+  status String @default("draft")
+  channels String[] @default([])
+  conversations Int @default(0)
+  completionRate Float @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,id])
+  @@map("bots")
+}
+model Connection {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channel String
+  name String
+  status String @default("pending")
+  credentialCiphertext String?
+  createdAt DateTime @default(now())
+  @@index([workspaceId])
+  @@map("connections")
+}
+model Contact {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
+  channel String
+  consent Boolean @default(false)
+  consentSource String?
+  consentAt DateTime?
+  createdAt DateTime @default(now())
+  conversations Conversation[]
+  @@unique([workspaceId,id])
+  @@map("contacts")
+}
+model Conversation {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contactId String
+  contact Contact @relation(fields: [workspaceId,contactId], references: [workspaceId,id], onDelete: Cascade)
+  mode String @default("bot")
+  status String @default("open")
+  channel String
+  createdAt DateTime @default(now())
+  @@index([workspaceId,status])
+  @@map("conversations")
+}
+model DailyMetric {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  date DateTime @db.Date
+  channel String
+  sent Int @default(0)
+  received Int @default(0)
+  newContacts Int @default(0)
+  completed Int @default(0)
+  started Int @default(0)
+  responseTimeMs Int @default(0)
+  @@unique([workspaceId,date,channel])
+  @@map("daily_metrics")
+}
+model AuditLog {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorId String
+  action String
+  createdAt DateTime @default(now())
+  @@index([workspaceId,createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@bothub/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "generate": "prisma generate",
+    "migrate": "prisma migrate deploy",
+    "seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "7.10.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "pg": "latest",
+    "argon2": "latest",
+    "dotenv": "latest"
+  },
+  "devDependencies": {
+    "prisma": "7.10.0",
+    "@types/pg": "latest"
+  }
+}
