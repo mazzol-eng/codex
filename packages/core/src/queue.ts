@@ -1,4 +1,8 @@
 import { Queue } from 'bullmq';
+import { createHash } from 'node:crypto';
+function jobKey(id: string, workspaceId: string) {
+  return createHash('sha256').update(`${workspaceId}\0${id}`).digest('hex');
+}
 export interface JobPayload {
   workspaceId: string;
   type: string;
@@ -11,7 +15,8 @@ export interface QueuePort {
 export class MemoryQueue implements QueuePort {
   readonly jobs = new Map<string, { payload: JobPayload; runAt: number }>();
   async enqueue(id: string, payload: JobPayload, delay = 0) {
-    if (!this.jobs.has(id)) this.jobs.set(id, { payload, runAt: Date.now() + delay });
+    const key = jobKey(id, payload.workspaceId);
+    if (!this.jobs.has(key)) this.jobs.set(key, { payload, runAt: Date.now() + delay });
   }
   async close() {
     this.jobs.clear();
@@ -31,7 +36,7 @@ export class BullQueue implements QueuePort {
   }
   async enqueue(id: string, payload: JobPayload, delay = 0) {
     await this.queue.add(payload.type, payload, {
-      jobId: id,
+      jobId: jobKey(id, payload.workspaceId),
       delay,
       attempts: 5,
       backoff: { type: 'exponential', delay: 1000 },

@@ -17,8 +17,9 @@ it('deduplicates jobs and retains workspace scope', async () => {
   const queue = new MemoryQueue();
   await queue.enqueue('one', { workspaceId: 'a', type: 'inbound', data: {} });
   await queue.enqueue('one', { workspaceId: 'b', type: 'inbound', data: {} });
-  expect(queue.jobs.size).toBe(1);
-  expect(queue.jobs.get('one')?.payload.workspaceId).toBe('a');
+  await queue.enqueue('one', { workspaceId: 'a', type: 'inbound', data: {} });
+  expect(queue.jobs.size).toBe(2);
+  expect([...queue.jobs.values()].map((job) => job.payload.workspaceId)).toEqual(['a', 'b']);
   await queue.close();
   expect(queue.jobs.size).toBe(0);
 });
