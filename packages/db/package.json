@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "generate": "prisma generate",
     "migrate": "prisma migrate deploy",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "wait": "tsx src/wait.ts"
   },
   "dependencies": {
     "@prisma/client": "7.10.0",

@@ -25,7 +25,13 @@ export async function getDashboard(
 ) {
   await authorizeWorkspace(userId, workspaceId);
   const workspace = await db.workspace.findUniqueOrThrow({ where: { id: workspaceId } });
-  const end = new Date(now);
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: workspace.timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  const end = new Date(`${today}T12:00:00Z`);
   end.setUTCHours(23, 59, 59, 999);
   const start = new Date(end);
   start.setUTCDate(start.getUTCDate() - days + 1);

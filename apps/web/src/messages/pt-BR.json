@@ -1,0 +1,30 @@
+{
+  "common": {
+    "name": "BotHub",
+    "comingSoon": "Em breve",
+    "search": "Pesquisar..."
+  },
+  "navigation": {
+    "overview": "Visão geral",
+    "bots": "Meus bots",
+    "inbox": "Caixa de entrada",
+    "contacts": "Contatos",
+    "campaigns": "Campanhas",
+    "templates": "Templates",
+    "analytics": "Relatórios",
+    "channels": "Canais",
+    "team": "Equipe",
+    "settings": "Configurações"
+  },
+  "auth": {
+    "loginTitle": "Olá de novo! 👋",
+    "signupTitle": "Vamos criar sua conta?",
+    "loginSubtitle": "Entre para acompanhar as conversas do seu negócio.",
+    "signupSubtitle": "Mais conversas, menos tarefas. Comece grátis.",
+    "email": "E-mail",
+    "password": "Senha",
+    "name": "Seu nome",
+    "login": "Entrar na minha conta",
+    "signup": "Criar minha conta"
+  }
+}

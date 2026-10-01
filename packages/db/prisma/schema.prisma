@@ -65,6 +65,9 @@ model Verification {
 model TwoFactor {
   id String @id
   secret String
+  verified Boolean @default(true)
+  failedVerificationCount Int @default(0)
+  lockedUntil DateTime?
   backupCodes String
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

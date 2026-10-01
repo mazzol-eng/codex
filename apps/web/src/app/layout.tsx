@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import localFont from 'next/font/local';
 import type { CSSProperties } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
@@ -45,7 +46,8 @@ export const metadata: Metadata = {
   title: { default: `${brand.name} — Conversas que aproximam`, template: `%s | ${brand.name}` },
   description: 'Automatize seu atendimento no WhatsApp, Telegram e SMS, sem escrever código.',
 };
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   const colors = Object.fromEntries(
     Object.entries(brand.colors).map(([name, value]) => [`--brand-${name}`, value]),
   ) as CSSProperties;
@@ -61,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Pular para o conteúdo
         </a>
         <NextIntlClientProvider>
-          <Providers>{children}</Providers>
+          <Providers nonce={nonce}>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>

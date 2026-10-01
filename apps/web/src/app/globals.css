@@ -8,12 +8,16 @@
   --muted: #64748b;
   --border: #e6eaf1;
   --primary: var(--brand-primary);
+  --primary-text: var(--brand-primaryText);
+  --danger-text: var(--brand-dangerText);
   --accent: var(--brand-accent);
   --ring: var(--brand-primary);
   --radius: 14px;
   --shadow: 0 4px 20px rgba(15, 23, 42, 0.035), 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 .dark {
+  --primary-text: var(--brand-darkPrimaryText);
+  --danger-text: var(--brand-darkDangerText);
   --background: var(--brand-dark);
   --surface: #121a2d;
   --surface-muted: #192238;
@@ -139,12 +143,12 @@ select:focus-visible {
 }
 .button-primary {
   color: white;
-  background: linear-gradient(120deg, var(--primary), var(--accent));
+  background: linear-gradient(120deg, var(--brand-ctaStart), var(--brand-ctaEnd));
   box-shadow: 0 3px 8px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 .button-secondary {
   background: color-mix(in srgb, var(--primary) 9%, var(--surface));
-  color: var(--primary);
+  color: var(--primary-text);
 }
 .button-outline {
   border: 1px solid var(--border);
@@ -181,7 +185,7 @@ select:focus-visible {
 }
 .input::placeholder {
   color: var(--muted);
-  opacity: 0.8;
+  opacity: 1;
 }
 .badge {
   display: inline-flex;
@@ -198,7 +202,7 @@ select:focus-visible {
   color: var(--muted);
 }
 .badge-primary {
-  color: var(--primary);
+  color: var(--primary-text);
   background: color-mix(in srgb, var(--primary) 10%, var(--surface));
 }
 .badge-success {
@@ -243,7 +247,7 @@ select:focus-visible {
   color: white;
 }
 .brand-dot {
-  color: var(--primary);
+  color: var(--primary-text);
 }
 .muted {
   color: var(--muted);
@@ -253,7 +257,7 @@ select:focus-visible {
   font-size: 11px;
   letter-spacing: 0.14em;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--primary-text);
 }
 .theme-moon {
   display: block;
@@ -327,7 +331,7 @@ select:focus-visible {
   margin-bottom: 20px;
 }
 .error-text {
-  color: var(--brand-danger);
+  color: var(--danger-text);
   font-size: 12px;
   margin: 6px 0 0;
 }

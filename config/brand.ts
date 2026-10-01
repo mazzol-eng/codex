@@ -4,6 +4,12 @@ export const brand = {
   logo: 'bot',
   colors: {
     primary: '#6366F1',
+    primaryText: '#4F46E5',
+    darkPrimaryText: '#A5B4FC',
+    ctaStart: '#4F46E5',
+    ctaEnd: '#7C3AED',
+    dangerText: '#DC2626',
+    darkDangerText: '#FCA5A5',
     accent: '#8B5CF6',
     background: '#F8FAFC',
     dark: '#0B1020',

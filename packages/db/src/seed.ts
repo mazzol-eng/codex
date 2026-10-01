@@ -124,5 +124,5 @@ for (let day = 0; day < 30; day++) {
     });
   }
 }
-console.log('Demo workspace seeded. Local login: demo@bothub.local / BotHubDemo2026!');
+console.log('Demo workspace seeded. See README for local sign-in details.');
 await db.$disconnect();
