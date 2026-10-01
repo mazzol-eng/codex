@@ -7,7 +7,7 @@
 - Database: `pnpm db:generate`; `pnpm db:seed` applies migrations then seeds demo data.
 - Run: `pnpm dev` (web port 3000; worker currently idle).
 - Validate: `pnpm lint`, `pnpm typecheck`, `pnpm test`.
-- Browser tests: `pnpm exec playwright install chromium`, then `pnpm test:e2e`.
+- Browser tests: `pnpm test:e2e` (packaged Chromium on Linux; run `pnpm exec playwright install chromium` once on other platforms).
 - Production build: `pnpm build`. Format: `pnpm format`.
 
 ## Structure
@@ -29,3 +29,5 @@ Never trust a workspace ID or role from client input without checking membership
 Use zod at boundaries, accessible controls, reduced-motion support and centralized tokens.
 Phases 0 and 1 only in the initial delivery. Future functionality must say “Em breve”.
 Run lint/typecheck/tests at each phase boundary and keep changes in small commits.
+
+- Docker-free development database fallback: `pnpm services:local` in a separate terminal (PostgreSQL 17, loopback only). Never run it beside Compose on port 5432.

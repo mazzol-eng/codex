@@ -22,3 +22,12 @@
    without pretending to process messages. Persistent phases 2–4 are intentionally out of scope.
 
 10. Use ESLint 9.39 and TypeScript 6.0 until Next ESLint plugins support the newer major versions; current peer requirements reject ESLint 10 / TypeScript 7.
+
+11. Docker Hub rate limits blocked cloud image pulls. A development-only embedded PostgreSQL 17.9 binary distribution is installed from the npm registry with lockfile integrity checks. `pnpm services:local` uses a real PostgreSQL instance on loopback. Its wrapper has a beta package version and is never a production database dependency. Redis is unnecessary for Phase 1 and QueuePort has an in-memory implementation.
+
+12. next-intl is configured using Next bundler aliases, equivalent to the basic plugin configuration. The current plugin eagerly loads an optional SWC message extractor whose cache fails in this sandbox. No native security or TLS checks are disabled. Core auth/navigation dictionaries have pt-BR and English versions; locale routing and full content translation are future work.
+13. Linux browser tests use npm-packaged Chromium, with pnpm integrity verification, so there is no browser download during the test run. Other platforms use the standard Playwright browser install.
+
+14. Pages use a per-request CSP nonce and dynamic rendering so Next framework scripts and the theme initializer are authorized. Style attributes remain permitted for chart/motion components. Development alone allows eval for Next debugging. HTTPS deployment and distributed auth rate limiting are production hardening steps for Phase 5.
+
+15. Queue job IDs are hashed together with the workspace ID, so the same external event ID in two companies cannot suppress another tenant’s job.
