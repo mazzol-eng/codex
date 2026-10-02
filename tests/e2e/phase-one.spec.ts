@@ -73,8 +73,10 @@ test('registration, workspace onboarding and empty dashboard isolation', async (
   expect(sessionCookie?.sameSite).toBe('Lax');
   await page.getByRole('button', { name: 'Pesquisar...' }).click();
   await page.getByLabel('Pesquisar áreas').fill('Templates');
-  await page.getByRole('button', { name: /Templates Em breve/ }).click();
-  await expect(page.getByRole('heading', { name: 'Templates de bots' })).toBeVisible();
+  await page.getByRole('button', { name: 'Templates', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Prontos para a sua próxima conversa' }),
+  ).toBeVisible();
 });
 test('demo dashboard, filters, command palette and mobile navigation', async ({ page }) => {
   await page.goto('/login?demo=1');
@@ -82,7 +84,7 @@ test('demo dashboard, filters, command palette and mobile navigation', async ({ 
   await page.getByRole('button', { name: 'Entrar na minha conta' }).click();
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.locator('.demo-banner')).toBeVisible();
-  await expect(page.locator('.metric-card').first()).toContainText('38');
+  await expect(page.locator('.metric-card').first()).toContainText('39');
   await page.getByLabel('Período do dashboard').selectOption('30');
   await expect(page.locator('.metric-card').nth(1)).toContainText('30 dias');
   await page.keyboard.press('Control+k');
@@ -102,8 +104,8 @@ test('demo dashboard, filters, command palette and mobile navigation', async ({ 
     .getByRole('navigation', { name: 'Acesso rápido' })
     .getByRole('link', { name: 'Meus bots' })
     .click();
-  await expect(page.getByRole('heading', { name: 'Seus bots', exact: true })).toBeVisible();
-  await expect(page.getByText('Em breve · Fase 2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Boas conversas começam aqui' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Abrir editor' }).first()).toBeVisible();
 });
 test('password recovery with fake delivery, one-use token and revoked sessions', async ({
   page,

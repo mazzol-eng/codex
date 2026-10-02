@@ -20,16 +20,22 @@ export default defineConfig({
     launchOptions: packaged
       ? {
           executablePath: await chromium.executablePath(),
-          args: chromium.args.filter(
-            (arg) => arg !== '--single-process' && arg !== '--disable-web-security',
-          ),
+          args: [
+            ...chromium.args.filter(
+              (arg) =>
+                arg !== '--single-process' &&
+                arg !== '--disable-web-security' &&
+                arg !== '--in-process-gpu',
+            ),
+            '--disable-gpu',
+          ],
           env: { ...process.env, XDG_CACHE_HOME: browserCache },
         }
       : {},
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'pnpm --filter @bothub/web dev',
+    command: 'pnpm dev',
     url: 'http://localhost:3000/health',
     reuseExistingServer: !process.env.CI,
     timeout: 60000,
