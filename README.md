@@ -1,6 +1,6 @@
 # BotHub
 
-Plataforma de chatbots em pt-BR. Entrega inicial: Fases 0 e 1.
+Plataforma de chatbots em pt-BR. Fases 0, 1 e 2: site, autenticação, dashboard, bots, editor visual, simulador, Telegram existente e Inbox.
 
 ## Rodar localmente
 
@@ -10,48 +10,56 @@ Requisitos: Node >=22.12, pnpm 11.19, Docker com Compose.
 pnpm install
 cp .env.example .env
 docker compose up -d --wait
-pnpm db:generate
 pnpm db:seed
 pnpm dev
 ```
 
-Abra o app na porta 3000. O seed oferece `demo@bothub.local` / `BotHubDemo2026!`.
-Credenciais são apenas de demonstração local. Novos cadastros não herdam dados do demo.
-O seed é idempotente e não exclui dados de usuários. O dashboard demo tem rótulo de exemplo.
-Nenhuma credencial externa é necessária; Google/e-mail reais são opcionais.
-A primeira instalação e o download inicial de imagens exigem rede; execução local depois disso não.
+O painel usa a porta 3000. O seed oferece `demo@bothub.local` / `BotHubDemo2026!`, com templates e um canal Simulador pronto. Credenciais são apenas de demonstração local. Novos cadastros criam empresas vazias e isoladas.
+
+O seed é idempotente e não exclui trabalho de usuários. Números e conversas do demo são identificados como exemplos. A instalação inicial exige rede; depois disso, desenvolvimento e testes não precisam de Internet nem de credenciais externas.
+
+### Sem Docker
+
+Em outro terminal, execute `pnpm services:local`. Esse comando inicia PostgreSQL 17 real em loopback e preserva `.data/postgres`. Depois rode `pnpm db:seed && pnpm dev`. Não execute esse PostgreSQL e o Compose na mesma porta.
+
+O modo local padrão usa a outbox persistente do banco entre web e worker. Redis é opcional para esse caminho; para BullMQ e Redis pub/sub, inicie o Redis do Compose e configure `QUEUE_MODE=redis`.
+
+## Sua primeira conversa
+
+1. Crie sua empresa ou entre no demo.
+2. Em **Templates**, importe um fluxo. Edite as mensagens e conecte os nós no editor.
+3. Clique **Testar** para conversar no simulador do rascunho, sem canal real. Variáveis e caminho percorrido aparecem na tela.
+4. Clique **Publicar**. Em **Canais**, adicione um **Simulador**, escolha o bot e envie `/start` pelo botão **Testar conversa**.
+5. Abra a **Caixa de entrada** para acompanhar. Use **Assumir conversa**, responda, adicione notas internas ou devolva ao bot.
+
+Para conectar **seu bot do Telegram existente**, configure uma URL pública HTTPS, cole o token no painel e siga [docs/CHANNELS.md](docs/CHANNELS.md). Não é necessário criar outro bot. WhatsApp existente e SMS entram na Fase 3; as prévias atuais não enviam por esses canais.
+
+Mantenha web **e worker** ativos; `pnpm dev` inicia os dois. Após modificar o schema e executar `pnpm db:generate`, reinicie os processos para atualizar instâncias do cliente Prisma.
 
 ## Validar
 
-`pnpm lint && pnpm typecheck && pnpm test` (PostgreSQL local precisa estar iniciado para os testes de integração). `pnpm build` gera o site.
-`pnpm test:e2e` valida fluxos críticos com PostgreSQL. Em Linux, Chromium já vem empacotado nas dependências. Em macOS/Windows, execute `pnpm exec playwright install chromium` uma vez antes dos testes.
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:e2e
+pnpm build
+```
 
-## Escopo
+PostgreSQL deve estar iniciado para integração/e2e. Playwright inicia web e worker quando necessário. Em Linux, Chromium vem nas dependências; em macOS/Windows, execute `pnpm exec playwright install chromium` uma vez.
 
-Fundação, landing, preços, recursos, termos/privacidade provisórios, login/cadastro,
-recuperação de senha, criação de workspace, shell e dashboard do seed.
-Bots/editor/canais/Inbox/campanhas e demais módulos aparecem como “Em breve”.
-Fase 2 depende de aprovação. Não há conexão ou envio real de mensagens nesta entrega.
+Pare o servidor de desenvolvimento antes de construir em `.next`, depois reinicie `pnpm dev`. Os testes exercitam isolamento entre empresas, engine, adaptadores com fixtures, publicação imutável, filas/envio, editor e atendimento humano. Telegram HTTP e Redis real dependem da infraestrutura indicada abaixo; testes padrão usam fakes/mode local.
 
-## Produção
+## Segurança e configuração
 
-Não exponha as credenciais de demo ou os defaults do Compose. Configure `AUTH_SECRET`, URL HTTPS,
-PostgreSQL privado, e-mail real e backup. Habilite Google somente com OAuth configurado.
-Termos/privacidade são placeholders e exigem revisão jurídica antes da publicação.
-Leia `docs/ARCHITECTURE.md`, `docs/DECISIONS.md` e `AGENTS.md`.
+Senhas argon2id, sessões persistentes com cookies httpOnly/sameSite, CSRF por origem, RBAC no servidor, limite de login, recuperação com identificadores em hash, OAuth criptografado e CSP com nonce. Credenciais de canal usam AES-256-GCM e nunca voltam ao front. Publicações são imutáveis; sessões mantêm a versão inicial. Opt-out impede novos envios e a fila revalida o consentimento.
 
-## Alternativa sem Docker
+Em desenvolvimento, `.data/auth-secret` e `.data/encryption-key` são gerados com permissões privadas. Preserve-os e nunca coloque esses arquivos em commits. Recuperação de senha fake grava `.data/last-email.json` sem imprimir tokens. E-mail/Google reais são opcionais.
 
-Se o download de imagens estiver bloqueado, execute `pnpm services:local` em outro terminal. Esse comando inicia PostgreSQL 17 local, com persistência em `.data/postgres`, sem downloads em runtime. Depois rode `pnpm db:seed && pnpm dev`. Redis ainda não é necessário na Fase 1. Não execute o PostgreSQL local e o Compose na mesma porta ao mesmo tempo.
+Produção exige `AUTH_SECRET`, `ENCRYPTION_KEY`, URL HTTPS, banco/Redis privados, e-mail real e backup. Nunca exponha credenciais demo ou defaults do Compose. RLS e rate limiting distribuído do login ainda não estão habilitados; revisão formal de acessibilidade/performance e endurecimento são Fase 5. Termos/privacidade são provisórios e exigem revisão antes da publicação.
 
-## Recuperação de senha em desenvolvimento
+## Próximas fases
 
-O adaptador fake grava o último e-mail em `.data/last-email.json`, com acesso restrito. O link é de uso único e expira. Nenhum e-mail ou token é impresso nos logs. Com `EMAIL_MODE=real`, configure o endpoint HTTPS, remetente e chave pela variável de ambiente.
+Fase 3: WhatsApp Cloud API com sua conta existente, Twilio, contatos/segmentos/campanhas. Fase 4: analytics avançado, equipe/convites, API pública, cobrança e IA opcional. Fase 5: segurança, performance, acessibilidade e revisão final. Recursos futuros aparecem como **Em breve**.
 
-## Internacionalização
-
-next-intl está preparado com dicionários pt-BR e inglês para navegação e autenticação. A interface atual é pt-BR; seleção de idioma e tradução completa ficam para a etapa de configurações.
-
-## Segurança nesta entrega
-
-Senhas argon2id, sessões persistentes com cookies httpOnly/sameSite, CSRF por origem, limitação de login, identificadores de recuperação com hash, OAuth tokens criptografados pelo Better Auth e CSP com nonce por página. Limitação de login em memória serve a uma instância; produção com múltiplas instâncias precisa armazenamento compartilhado na Fase 5. RLS ainda não está habilitado.
+Leia [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DECISIONS.md](docs/DECISIONS.md), [docs/FLOW_NODES.md](docs/FLOW_NODES.md), [docs/DELIVERY.md](docs/DELIVERY.md) e [AGENTS.md](AGENTS.md).

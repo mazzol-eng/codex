@@ -10,10 +10,10 @@ Daily metrics are preaggregated; demo seed uses invented values and is labeled i
 
 Core ports isolate queues, e-mail and credentials encryption. BullMQ and an in-memory queue
 share QueuePort. FakeEmail and HttpEmail share EmailPort. Channel contracts normalize inbound
-and outbound messages; their execution engine/adapters are Phase 2/3 work.
+and outbound messages; flow-engine and Telegram/Simulator adapters are implemented. WhatsApp/SMS real adapters remain Phase 3.
 
-Redis-backed workers and Inbox SSE are designed for Phase 2. The Phase 1 worker is intentionally
-idle and consumes no messages. Flow-engine currently defines only graph types.
+The worker executes inbound events, resumes waits and sends persisted outbound messages.
+Inbox receives tenant-scoped invalidations over SSE. See the Phase 2 execution section below.
 
 The database has tenant indexes and compound contact/conversation foreign keys. PostgreSQL RLS
 is not enabled in this delivery; see DECISIONS.md. Integration tests use two real workspaces to
@@ -21,3 +21,13 @@ verify authorization and query filtering. API responses use no-store for authent
 
 Local fonts, locally bundled icons, theme variables and brand.ts avoid runtime asset dependencies.
 The optional Google provider and real e-mail delivery are the only outbound auth integrations.
+
+## Phase 2 execution
+
+packages/runtime composes pure flow-engine, channel adapters and tenant-scoped persistence. The web API authorizes members and validates bodies/origins; the worker has service access, enumerates pending jobs globally, then scopes every business operation to that job's workspace.
+
+Incoming webhook → verify secret → normalized event / durable outbox → async worker transaction → pinned FlowVersion and Conversation session → persisted outbound Messages → rate-limited sender. FlowRun stores node IDs/status/error codes; application logs never contain message text, tokens or contacts. Published rows cannot be updated at the database layer.
+
+Redis mode uses BullMQ dispatch and Redis pub/sub invalidations consumed by the web SSE route. The database outbox also recovers missed dispatches. Local mode uses durable polling, with memory ports for unit tests and periodic SSE invalidation across processes. SSE rechecks session/membership and sends no message contents; authorized queries fetch the current view.
+
+Human actions and inbound processing share a contact lock; taking a conversation cancels pending bot replies. Compound tenant foreign keys cover bots, versions, connections, contacts, conversations and messages. A viewer cannot edit flows or reply. Bot configuration requires owner/admin; attendants operate Inbox. Invitation UI and the full permission matrix remain Phase 4.
