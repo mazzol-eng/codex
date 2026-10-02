@@ -34,7 +34,12 @@
     "better-auth": "1.7.7",
     "argon2": "latest",
     "@fontsource/inter": "5.3.0",
-    "@fontsource/plus-jakarta-sans": "5.3.0"
+    "@fontsource/plus-jakarta-sans": "5.3.0",
+    "@bothub/channels": "workspace:*",
+    "@bothub/flow-engine": "workspace:*",
+    "@bothub/runtime": "workspace:*",
+    "@xyflow/react": "^12.10.0",
+    "@dagrejs/dagre": "^1.1.8"
   },
   "devDependencies": {
     "@types/react": "latest",

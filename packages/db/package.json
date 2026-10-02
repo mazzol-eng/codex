@@ -17,7 +17,8 @@
     "@prisma/adapter-pg": "7.10.0",
     "pg": "latest",
     "argon2": "latest",
-    "dotenv": "latest"
+    "dotenv": "latest",
+    "@bothub/flow-engine": "workspace:*"
   },
   "devDependencies": {
     "prisma": "7.10.0",

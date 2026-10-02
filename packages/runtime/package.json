@@ -1,0 +1,20 @@
+{
+  "name": "@bothub/runtime",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bothub/core": "workspace:*",
+    "@bothub/db": "workspace:*",
+    "@bothub/channels": "workspace:*",
+    "@bothub/flow-engine": "workspace:*",
+    "ioredis": "^5.10.0",
+    "bullmq": "latest",
+    "zod": "latest"
+  }
+}

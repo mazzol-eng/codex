@@ -5,7 +5,7 @@
 - Install: `pnpm install --frozen-lockfile` (Node >=22.12, pnpm 11.19).
 - Services: `docker compose up -d --wait`.
 - Database: `pnpm db:generate`; `pnpm db:seed` applies migrations then seeds demo data.
-- Run: `pnpm dev` (web port 3000; worker currently idle).
+- Run: `pnpm dev` (web port 3000; asynchronous worker).
 - Validate: `pnpm lint`, `pnpm typecheck`, `pnpm test`.
 - Browser tests: `pnpm test:e2e` (packaged Chromium on Linux; run `pnpm exec playwright install chromium` once on other platforms).
 - Production build: `pnpm build`. Format: `pnpm format`.
@@ -15,7 +15,8 @@
 `apps/web` contains the Next.js site and dashboard; `apps/worker` hosts asynchronous jobs.
 `packages/db` contains Prisma schema, migrations, seed and tenant-scoped repositories.
 `packages/core` contains ports, queue, logging and encryption. `packages/channels` defines
-channel contracts. `packages/flow-engine` is pure TypeScript, with no I/O.
+channel contracts and Telegram/Simulator adapters. `packages/flow-engine` is pure TypeScript, with no I/O.
+`packages/runtime` composes the engine, tenant persistence, worker processing and realtime ports.
 `config/brand.ts` is the only brand/color source. `docs/DECISIONS.md` records tradeoffs.
 
 ## Conventions
@@ -27,7 +28,11 @@ Never log credentials or message bodies. Persist channel credentials only with A
 Business reads/writes must be scoped to an authorized workspace, checked server-side.
 Never trust a workspace ID or role from client input without checking membership.
 Use zod at boundaries, accessible controls, reduced-motion support and centralized tokens.
-Phases 0 and 1 only in the initial delivery. Future functionality must say “Em breve”.
+Phase 2 is authorized. Future functionality must say “Em breve”.
 Run lint/typecheck/tests at each phase boundary and keep changes in small commits.
 
 - Docker-free development database fallback: `pnpm services:local` in a separate terminal (PostgreSQL 17, loopback only). Never run it beside Compose on port 5432.
+
+- Phase 2 local mode uses the PostgreSQL outbox across web/worker; set QUEUE_MODE=redis for BullMQ/pub-sub.
+- Restart web and worker after Prisma generation. Never build into .next while dev is running.
+- Connect existing external bots/accounts; never create another Telegram/WhatsApp account for onboarding.
