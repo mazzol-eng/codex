@@ -36,20 +36,28 @@ export async function getDashboard(
   const start = new Date(end);
   start.setUTCDate(start.getUTCDate() - days + 1);
   start.setUTCHours(0, 0, 0, 0);
-  const [metrics, bots, connections, contacts, activeConversations, members] = await Promise.all([
-    db.dailyMetric.findMany({
-      where: { workspaceId, date: { gte: start, lte: end } },
-      orderBy: { date: 'asc' },
-    }),
-    db.bot.findMany({ where: { workspaceId }, orderBy: { conversations: 'desc' } }),
-    db.connection.findMany({
-      where: { workspaceId },
-      select: { id: true, channel: true, name: true, status: true },
-    }),
-    db.contact.count({ where: { workspaceId } }),
-    db.conversation.count({ where: { workspaceId, status: 'open' } }),
-    db.membership.count({ where: { workspaceId } }),
-  ]);
+  const [metrics, bots, connections, contacts, activeConversations, members, published, tested] =
+    await Promise.all([
+      db.dailyMetric.findMany({
+        where: { workspaceId, date: { gte: start, lte: end } },
+        orderBy: { date: 'asc' },
+      }),
+      db.bot.findMany({
+        where: { workspaceId, status: { not: 'archived' } },
+        orderBy: { conversations: 'desc' },
+      }),
+      db.connection.findMany({
+        where: { workspaceId },
+        select: { id: true, channel: true, name: true, status: true },
+      }),
+      db.contact.count({ where: { workspaceId } }),
+      db.conversation.count({ where: { workspaceId, status: 'open' } }),
+      db.membership.count({ where: { workspaceId } }),
+      db.flowVersion.count({ where: { workspaceId } }),
+      db.message.count({
+        where: { workspaceId, direction: 'inbound', conversation: { channel: 'simulator' } },
+      }),
+    ]);
   const sums = metrics.reduce(
     (s, m) => ({
       sent: s.sent + m.sent,
@@ -74,6 +82,12 @@ export async function getDashboard(
   });
   return {
     workspace,
+    checklist: {
+      connected: connections.some((c) => c.status === 'connected'),
+      created: bots.some((b) => b.draft !== null),
+      published: published > 0,
+      tested: tested > 0,
+    },
     bots,
     connections,
     totals: {

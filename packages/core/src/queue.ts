@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import { createHash } from 'node:crypto';
+import { logger } from './logger';
 function jobKey(id: string, workspaceId: string) {
   return createHash('sha256').update(`${workspaceId}\0${id}`).digest('hex');
 }
@@ -31,8 +32,19 @@ export class BullQueue implements QueuePort {
         host: url.hostname,
         port: Number(url.port || 6379),
         ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
+        ...(url.username ? { username: decodeURIComponent(url.username) } : {}),
+        ...(url.protocol === 'rediss:' ? { tls: {} } : {}),
+        db: Number(url.pathname.slice(1) || 0),
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
       },
     });
+    this.queue.on('error', () =>
+      logger.error(
+        { code: 'queue_unavailable' },
+        'Queue unavailable; durable outbox retains events',
+      ),
+    );
   }
   async enqueue(id: string, payload: JobPayload, delay = 0) {
     await this.queue.add(payload.type, payload, {

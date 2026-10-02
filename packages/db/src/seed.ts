@@ -1,6 +1,8 @@
 import { config } from 'dotenv';
 import { hash } from 'argon2';
 import { db } from './index';
+import { botTemplates } from '@bothub/flow-engine';
+import { Prisma } from './generated/client';
 config({ path: '../../.env', quiet: true });
 const userId = 'demo-user';
 await db.user.upsert({
@@ -56,6 +58,82 @@ for (const [i, name, description, channels] of [
       completionRate: [92, 86, 0][i],
     },
   });
+// Add runnable graphs only to untouched illustrative bots; preserve user edits and publications.
+for (const [i, templateId] of ['faq', 'leads', 'booking'].entries()) {
+  const graph = botTemplates.find((t) => t.id === templateId)!.graph;
+  await db.bot.updateMany({
+    where: { workspaceId, id: `demo-bot-${i}`, draft: { equals: Prisma.DbNull } },
+    data: { draft: graph as Prisma.InputJsonValue },
+  });
+}
+const simulator = await db.connection.upsert({
+  where: { id: 'demo-simulator' },
+  update: {},
+  create: {
+    id: 'demo-simulator',
+    workspaceId,
+    botId: 'demo-bot-0',
+    channel: 'simulator',
+    name: 'Simulador do atendimento',
+    status: 'connected',
+  },
+});
+if (!(await db.flowVersion.count({ where: { workspaceId, botId: 'demo-bot-0' } }))) {
+  const bot = await db.bot.findFirstOrThrow({ where: { workspaceId, id: 'demo-bot-0' } });
+  await db.flowVersion.create({
+    data: { workspaceId, botId: bot.id, number: 1, graph: bot.draft as Prisma.InputJsonValue },
+  });
+}
+const demoContact = await db.contact.upsert({
+  where: { id: 'demo-live-contact' },
+  update: {},
+  create: {
+    id: 'demo-live-contact',
+    workspaceId,
+    connectionId: simulator.id,
+    externalContactId: 'demo-client',
+    name: 'Beatriz Almeida',
+    channel: 'simulator',
+    consent: true,
+    consentSource: 'simulador de demonstração',
+    consentAt: new Date(),
+  },
+});
+const demoConversation = await db.conversation.upsert({
+  where: { id: 'demo-live-conversation' },
+  update: {},
+  create: {
+    id: 'demo-live-conversation',
+    workspaceId,
+    connectionId: simulator.id,
+    contactId: demoContact.id,
+    channel: 'simulator',
+    mode: 'human',
+    unread: 1,
+    lastInboundAt: new Date(),
+  },
+});
+for (const [i, direction, text] of [
+  [0, 'inbound', 'Olá! Gostaria de saber mais sobre os serviços.'],
+  [1, 'outbound', 'Olá, Beatriz! Que bom ter você aqui. Como podemos ajudar?'],
+  [2, 'inbound', 'Podemos conversar sobre um agendamento?'],
+] as const) {
+  await db.message.upsert({
+    where: {
+      workspaceId_idempotencyKey: { workspaceId, idempotencyKey: `demo-seed-message-${i}` },
+    },
+    update: {},
+    create: {
+      workspaceId,
+      conversationId: demoConversation.id,
+      idempotencyKey: `demo-seed-message-${i}`,
+      direction,
+      content: { type: 'text', text },
+      status: direction === 'inbound' ? 'received' : 'sent',
+      createdAt: new Date(Date.now() - (3 - i) * 60000),
+    },
+  });
+}
 for (const channel of ['whatsapp', 'telegram', 'sms'])
   await db.connection.upsert({
     where: { id: `demo-${channel}` },

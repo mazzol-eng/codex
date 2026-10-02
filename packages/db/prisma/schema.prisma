@@ -90,6 +90,10 @@ model Workspace {
   conversations Conversation[]
   metrics DailyMetric[]
   auditLogs AuditLog[]
+  flowVersions FlowVersion[]
+  messages Message[]
+  events WebhookEvent[]
+  flowRuns FlowRun[]
   @@map("workspaces")
 }
 model Membership {
@@ -112,6 +116,11 @@ model Bot {
   description String
   status String @default("draft")
   channels String[] @default([])
+  draft Json?
+  draftRevision Int @default(0)
+  settings Json @default("{}")
+  versions FlowVersion[]
+  connections Connection[]
   conversations Int @default(0)
   completionRate Float @default(0)
   createdAt DateTime @default(now())
@@ -126,8 +135,15 @@ model Connection {
   channel String
   name String
   status String @default("pending")
+  nextSendAt DateTime @default(now())
   credentialCiphertext String?
+  botId String?
+  bot Bot? @relation(fields: [workspaceId,botId], references: [workspaceId,id])
+  contacts Contact[]
+  conversations Conversation[]
+  events WebhookEvent[]
   createdAt DateTime @default(now())
+  @@unique([workspaceId,id])
   @@index([workspaceId])
   @@map("connections")
 }
@@ -137,12 +153,18 @@ model Contact {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name String
   channel String
+  externalContactId String?
+  connectionId String?
+  connection Connection? @relation(fields: [workspaceId,connectionId], references: [workspaceId,id], onDelete: Cascade)
+  tags String[] @default([])
+  nextSendAt DateTime @default(now())
   consent Boolean @default(false)
   consentSource String?
   consentAt DateTime?
   createdAt DateTime @default(now())
   conversations Conversation[]
   @@unique([workspaceId,id])
+  @@unique([workspaceId,connectionId,externalContactId])
   @@map("contacts")
 }
 model Conversation {
@@ -151,10 +173,23 @@ model Conversation {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   contactId String
   contact Contact @relation(fields: [workspaceId,contactId], references: [workspaceId,id], onDelete: Cascade)
+  connectionId String?
+  connection Connection? @relation(fields: [workspaceId,connectionId], references: [workspaceId,id], onDelete: Cascade)
+  versionId String?
+  version FlowVersion? @relation(fields: [workspaceId,versionId], references: [workspaceId,id])
+  session Json @default("{}")
+  assignedUserId String?
+  unread Int @default(0)
+  lastInboundAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
+  messages Message[]
+  runs FlowRun[]
   mode String @default("bot")
   status String @default("open")
   channel String
   createdAt DateTime @default(now())
+  @@unique([workspaceId,id])
+  @@unique([workspaceId,connectionId,contactId])
   @@index([workspaceId,status])
   @@map("conversations")
 }
@@ -182,4 +217,72 @@ model AuditLog {
   createdAt DateTime @default(now())
   @@index([workspaceId,createdAt])
   @@map("audit_logs")
+}
+
+model FlowVersion {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  botId String
+  bot Bot @relation(fields: [workspaceId,botId], references: [workspaceId,id], onDelete: Cascade)
+  number Int
+  graph Json
+  createdAt DateTime @default(now())
+  conversations Conversation[]
+  @@unique([workspaceId,id])
+  @@unique([workspaceId,botId,number])
+  @@map("flow_versions")
+}
+model Message {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation Conversation @relation(fields: [workspaceId,conversationId], references: [workspaceId,id], onDelete: Cascade)
+  direction String
+  sender String @default("bot")
+  kind String @default("text")
+  content Json
+  status String @default("received")
+  externalId String?
+  idempotencyKey String?
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,idempotencyKey])
+  @@index([workspaceId,conversationId,createdAt])
+  @@index([status,nextAttemptAt])
+  @@map("messages")
+}
+model WebhookEvent {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connectionId String
+  connection Connection @relation(fields: [workspaceId,connectionId], references: [workspaceId,id], onDelete: Cascade)
+  externalId String
+  payload Json
+  status String @default("pending")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,connectionId,externalId])
+  @@index([status,nextAttemptAt])
+  @@map("webhook_events")
+}
+model FlowRun {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation Conversation @relation(fields: [workspaceId,conversationId], references: [workspaceId,id], onDelete: Cascade)
+  trace Json
+  errors String[] @default([])
+  createdAt DateTime @default(now())
+  @@index([workspaceId,conversationId,createdAt])
+  @@map("flow_runs")
 }

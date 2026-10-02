@@ -1,14 +1,70 @@
-import { config } from 'dotenv';
 import { logger } from '@bothub/core';
-config({ path: '../../.env', quiet: true });
-// There are no processing jobs in Phase 1. Do not consume future job types silently.
+import { db } from '@bothub/db';
+import {
+  processPending,
+  enqueueDueSessions,
+  enqueueConversationResume,
+  processEvent,
+  getQueue,
+} from '@bothub/runtime';
+import { Worker } from 'bullmq';
+let stopping = false,
+  busy = false,
+  worker: Worker | undefined;
+if (process.env.QUEUE_MODE === 'redis') {
+  const url = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  worker = new Worker(
+    'bothub',
+    async (job) => {
+      if (job.name === 'inbound') await processEvent(job.data.workspaceId, job.data.data.eventId);
+      else if (job.name === 'resume')
+        await enqueueConversationResume(job.data.workspaceId, job.data.data.conversationId);
+      else throw new Error('Unsupported job type');
+    },
+    {
+      connection: {
+        host: url.hostname,
+        port: Number(url.port || 6379),
+        ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
+      },
+      concurrency: 4,
+    },
+  );
+  worker.on('error', () =>
+    logger.error(
+      { service: 'worker', code: 'queue_error' },
+      'Queue unavailable; durable outbox will retry',
+    ),
+  );
+}
+let lastSchedule = 0;
+const tick = async () => {
+  if (busy || stopping) return;
+  busy = true;
+  try {
+    if (Date.now() - lastSchedule > 1000) {
+      await enqueueDueSessions();
+      lastSchedule = Date.now();
+    }
+    await processPending();
+  } catch {
+    logger.error({ service: 'worker', code: 'processing_error' }, 'Worker cycle failed');
+  } finally {
+    busy = false;
+  }
+};
+const timer = setInterval(tick, 250);
+await tick();
 logger.info(
-  { service: 'worker', phase: 1 },
-  'Worker initialized; channel processing starts in Phase 2',
+  { service: 'worker', phase: 2, queue: process.env.QUEUE_MODE ?? 'memory' },
+  'Worker ready',
 );
-const keepAlive = setInterval(() => {}, 60000);
 for (const signal of ['SIGINT', 'SIGTERM'] as const)
-  process.on(signal, () => {
-    clearInterval(keepAlive);
+  process.on(signal, async () => {
+    stopping = true;
+    clearInterval(timer);
+    await worker?.close();
+    await getQueue().close();
+    await db.$disconnect();
     process.exit(0);
   });
