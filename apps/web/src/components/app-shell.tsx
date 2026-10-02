@@ -75,7 +75,10 @@ export function AppShell({
   const [command, setCommand] = useState(false);
   const [search, setSearch] = useState('');
   const current =
-    [...navigation, ...management].find((item) => item.href === pathname)?.label ?? 'Seu espaço';
+    [...navigation, ...management].find(
+      (item) =>
+        item.href === pathname || (item.href !== '/app' && pathname.startsWith(item.href + '/')),
+    )?.label ?? 'Seu espaço';
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -157,7 +160,7 @@ export function AppShell({
           >
             <item.icon size={18} />
             <span>{item.label}</span>
-            {item.phase && (
+            {item.phase && item.phase > 2 && (
               <span className="nav-coming" aria-label="Em breve">
                 ·
               </span>
@@ -306,7 +309,7 @@ export function AppShell({
         </main>
         <footer className="app-footer">
           <span>Feito para boas conversas.</span>
-          <span>{brand.name} · Fases 0 e 1</span>
+          <span>{brand.name} · Fase 2</span>
         </footer>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Acesso rápido">
@@ -368,7 +371,7 @@ export function AppShell({
                   >
                     <item.icon size={17} />
                     {item.label}
-                    {item.phase && <Badge>Em breve</Badge>}
+                    {item.phase && item.phase > 2 && <Badge>Em breve</Badge>}
                     <ArrowRightIcon />
                   </button>
                 ))}

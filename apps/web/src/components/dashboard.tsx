@@ -66,7 +66,8 @@ export function Dashboard({
     },
     initialData: days === 7 ? initialData : undefined,
   });
-  const { totals, workspace, bots, connections } = data;
+  const { totals, workspace, bots, connections, checklist: progress } = data;
+  const completedSteps = Object.values(progress).filter(Boolean).length;
   const channelTotal = data.channels.reduce((sum, c) => sum + c.total, 0);
   const isDemo = workspace.isDemo;
   const metrics = [
@@ -138,7 +139,8 @@ export function Dashboard({
           <FlaskConical size={16} />
           <span>
             Você está no espaço de demonstração.{' '}
-            <strong>Os números e bots abaixo são exemplos.</strong> Nenhum canal está conectado.
+            <strong>Os números e bots abaixo são exemplos.</strong> O simulador está pronto; os
+            canais externos são ilustrativos.
           </span>
           <Link href="/onboarding">
             Criar minha empresa <ArrowUpRight size={13} />
@@ -152,9 +154,10 @@ export function Dashboard({
           </span>
           <div>
             <h2>
-              Seu primeiro bot começa aqui <Badge tone="primary">0 de 4 passos</Badge>
+              Seu primeiro bot começa aqui{' '}
+              <Badge tone="primary">{completedSteps} de 4 passos</Badge>
             </h2>
-            <p>Sua conta está pronta. A automação chega na Fase 2.</p>
+            <p>Conecte, personalize, publique e teste. Sua próxima conversa começa aqui.</p>
           </div>
           <button
             className="checklist-toggle"
@@ -172,24 +175,28 @@ export function Dashboard({
           <div className="checklist-items">
             {[
               {
+                done: progress.connected,
                 icon: Plug,
                 title: 'Conecte um canal',
                 description: 'Esteja onde seu cliente está.',
                 href: '/app/channels',
               },
               {
+                done: progress.created,
                 icon: LayoutTemplateIcon,
                 title: 'Escolha um template',
                 description: 'Comece com uma boa ideia.',
                 href: '/app/templates',
               },
               {
+                done: progress.published,
                 icon: Bot,
                 title: 'Publique seu bot',
                 description: 'Dê vida à sua conversa.',
                 href: '/app/bots',
               },
               {
+                done: progress.tested,
                 icon: MessageCircle,
                 title: 'Envie uma mensagem',
                 description: 'Teste e veja acontecer.',
@@ -197,11 +204,11 @@ export function Dashboard({
               },
             ].map((item, i) => (
               <Link href={item.href} key={item.title} className="checklist-item">
-                <span className="checklist-number">{i + 1}</span>
+                <span className="checklist-number">{item.done ? <Check size={14} /> : i + 1}</span>
                 <div>
                   <strong>{item.title}</strong>
                   <p>{item.description}</p>
-                  <span>Em breve</span>
+                  <span>{item.done ? 'Concluído' : 'Vamos começar'}</span>
                 </div>
                 <item.icon size={15} />
               </Link>
@@ -450,7 +457,7 @@ export function Dashboard({
                     {bot.status === 'active' ? (
                       <>
                         <span className="status-dot" />
-                        Exemplo ativo
+                        {isDemo ? 'Exemplo ativo' : 'Ativo'}
                       </>
                     ) : (
                       'Rascunho'
@@ -485,7 +492,7 @@ export function Dashboard({
                 <circle cx="54" cy="31" r="4" fill="var(--primary)" />
               </svg>
               <strong>Seu primeiro assistente está a caminho.</strong>
-              <p>Criação de bots e templates chegam na Fase 2.</p>
+              <p>Escolha um template e personalize sua primeira conversa.</p>
               <Button variant="secondary" size="sm" asChild>
                 <Link href="/app/templates">
                   Conhecer os templates <ArrowRight size={13} />
@@ -555,7 +562,9 @@ export function Dashboard({
           <div className="connection-state">
             <span className="connection-dot" />
             <span>
-              {connections.length && isDemo ? 'Conexões ilustrativas' : 'Nenhum canal conectado'}
+              {connections.some((c) => c.status === 'connected')
+                ? 'Pronto para conversar'
+                : 'Nenhum canal conectado'}
             </span>
             <Link href="/app/channels">
               Ver <ChevronRight size={11} />
