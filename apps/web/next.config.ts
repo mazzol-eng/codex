@@ -11,6 +11,9 @@ const config: NextConfig = {
     return config;
   },
   serverExternalPackages: ['argon2'],
+  outputFileTracingExcludes: {
+    '*': ['../../.data/**/*', '../../.pnpm-store/**/*', '../../.env*', '.env*'],
+  },
   async headers() {
     return [
       {

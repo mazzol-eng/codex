@@ -5,34 +5,34 @@ import { twoFactor } from 'better-auth/plugins';
 import { hash, verify } from 'argon2';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { db } from '@bothub/db';
 import { brand } from '../../../../config/brand';
 import { FakeEmail, HttpEmail, logger, type EmailPort } from '@bothub/core';
-const dataDir = resolve(process.cwd(), '../../.data');
+const secretPath = resolve(process.cwd(), '../../.data/auth-secret');
+const mailboxPath = resolve(process.cwd(), '../../.data/last-email.json');
 function getSecret() {
   if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
   if (process.env.BOTHUB_BUILD === '1') return randomBytes(48).toString('base64url');
   if (process.env.NODE_ENV === 'production')
     throw new Error('AUTH_SECRET is required in production');
-  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
-  const path = resolve(dataDir, 'auth-secret');
-  if (!existsSync(path)) {
+  mkdirSync(dirname(secretPath), { recursive: true, mode: 0o700 });
+  if (!existsSync(secretPath)) {
     try {
-      writeFileSync(path, randomBytes(48).toString('base64url'), { mode: 0o600, flag: 'wx' });
+      writeFileSync(secretPath, randomBytes(48).toString('base64url'), { mode: 0o600, flag: 'wx' });
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
     }
   }
-  return readFileSync(path, 'utf8');
+  return readFileSync(secretPath, 'utf8');
 }
 class LocalEmail extends FakeEmail {
   override async send(message: Parameters<EmailPort['send']>[0]) {
     await super.send(message);
     if (process.env.NODE_ENV === 'production')
       throw new Error('Configure real email delivery in production');
-    mkdirSync(dataDir, { recursive: true, mode: 0o700 });
-    writeFileSync(resolve(dataDir, 'last-email.json'), JSON.stringify(message), { mode: 0o600 });
+    mkdirSync(dirname(mailboxPath), { recursive: true, mode: 0o700 });
+    writeFileSync(mailboxPath, JSON.stringify(message), { mode: 0o600 });
   }
 }
 const mail: EmailPort =
