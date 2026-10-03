@@ -4,7 +4,7 @@ export async function GET() {
   try {
     await db.$queryRaw`SELECT 1`;
     return Response.json(
-      { status: 'ok', service: 'bothub-web', database: 'ok', phase: 2 },
+      { status: 'ok', service: 'bothub-web', database: 'ok', phase: 3 },
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch {

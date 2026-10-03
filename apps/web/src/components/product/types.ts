@@ -6,6 +6,9 @@ export type Connection = {
   channel: string;
   status: string;
   botId: string | null;
+  mode: string;
+  externalAccountId?: string | null;
+  settings?: { smsPriceCents?: number };
   createdAt: string;
 };
 export type BotRecord = {

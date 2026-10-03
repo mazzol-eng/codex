@@ -21,5 +21,5 @@ export async function productRequest<T>(url: string, method = 'GET', body?: unkn
   return value as T;
 }
 export function workspaceUrl(path: string, workspaceId: string) {
-  return `${path}?workspaceId=${encodeURIComponent(workspaceId)}`;
+  return `${path}${path.includes('?') ? '&' : '?'}workspaceId=${encodeURIComponent(workspaceId)}`;
 }

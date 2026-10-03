@@ -84,7 +84,8 @@ test('demo dashboard, filters, command palette and mobile navigation', async ({ 
   await page.getByRole('button', { name: 'Entrar na minha conta' }).click();
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.locator('.demo-banner')).toBeVisible();
-  await expect(page.locator('.metric-card').first()).toContainText('39');
+  const activeConversations = await db.conversation.count({where:{workspaceId:'demo-workspace',status:'open'}});
+  await expect(page.locator('.metric-card').first()).toContainText(String(activeConversations));
   await page.getByLabel('Período do dashboard').selectOption('30');
   await expect(page.locator('.metric-card').nth(1)).toContainText('30 dias');
   await page.keyboard.press('Control+k');

@@ -37,10 +37,15 @@ export function Channels({
     queryFn: () => productRequest<Connection[]>(workspaceUrl('/api/connections', workspaceId)),
     initialData: connections,
   });
-  const [channel, setChannel] = useState<'simulator' | 'telegram' | null>(null),
+  const [channel, setChannel] = useState<'simulator' | 'telegram' | 'whatsapp' | 'sms' | null>(
+      null,
+    ),
     [name, setName] = useState(''),
     [botId, setBotId] = useState(bots[0]?.id ?? ''),
     [token, setToken] = useState(''),
+    [mode, setMode] = useState<'fake' | 'real'>('fake'),
+    [credentials, setCredentials] = useState<Record<string, string>>({}),
+    [smsPrice, setSmsPrice] = useState('0.10'),
     [busy, setBusy] = useState(false),
     [logs, setLogs] = useState<
       { id: string; status: string; createdAt: string; lastError: string | null }[] | null
@@ -55,14 +60,27 @@ export function Channels({
       const c = await productRequest<Connection>(
         workspaceUrl('/api/connections', workspaceId),
         'POST',
-        { channel, name, botId, ...(channel === 'telegram' ? { token } : {}) },
+        {
+          channel,
+          name,
+          botId,
+          ...(channel === 'telegram' ? { token } : {}),
+          ...(['whatsapp', 'sms'].includes(channel ?? '')
+            ? {
+                mode,
+                ...(mode === 'real' ? { credentials } : {}),
+                smsPriceCents: Math.round(Number(smsPrice) * 100),
+              }
+            : {}),
+        },
       );
       setToken('');
+      setCredentials({});
       setChannel(null);
       toast.success(
         c.status === 'connected'
           ? 'Canal conectado.'
-          : 'Token validado. Falta configurar a URL pública HTTPS do ambiente.',
+          : 'Dados validados. Conclua a verificação da conexão com sua URL pública HTTPS.',
       );
       queryClient.setQueryData<Connection[]>(['connections', workspaceId], (old) => [
         ...(old ?? connections),
@@ -119,7 +137,7 @@ export function Channels({
       <ProductHeader
         eyebrow="UM FLUXO, VÁRIOS LUGARES"
         title="Converse onde seu cliente está"
-        description="Conecte o bot do Telegram que você já tem ou teste com um canal simulado."
+        description="Conecte suas contas existentes do WhatsApp e Telegram, adicione SMS ou experimente na demonstração."
       />
       <div className="connection-options">
         {(['telegram', 'simulator', 'whatsapp', 'sms'] as const).map((c) => (
@@ -137,21 +155,21 @@ export function Channels({
                     ? 'Sua conta Business, pela API oficial.'
                     : 'Envie mensagens pela Twilio.'}
             </p>
-            {c === 'telegram' || c === 'simulator' ? (
+            {
               <Button
                 variant="outline"
                 disabled={!canEdit || !bots.length}
                 onClick={() => {
                   setChannel(c);
-                  setName(c === 'telegram' ? 'Meu Telegram' : 'Simulador de teste');
+                  setName(c === 'simulator' ? 'Simulador de teste' : `Meu ${channelLabel(c)}`);
+                  setCredentials({});
+                  setMode('fake');
                 }}
               >
                 <Plus size={15} />
-                {c === 'telegram' ? 'Conectar Telegram' : 'Adicionar simulador'}
+                {c === 'simulator' ? 'Adicionar simulador' : `Conectar ${channelLabel(c)}`}
               </Button>
-            ) : (
-              <Badge tone="neutral">Em breve · Fase 3</Badge>
-            )}
+            }
           </article>
         ))}
       </div>
@@ -165,6 +183,14 @@ export function Channels({
           </Link>
         </div>
       )}
+      <div className="product-notice">
+        <ShieldCheck size={17} />
+        <span>WhatsApp pela API oficial da Meta. Nenhum bot ou conta externa será criado.</span>
+        <Link href="/app/whatsapp-templates">
+          Templates do WhatsApp
+          <ArrowRight size={14} />
+        </Link>
+      </div>
       <div className="product-section-heading">
         <h2>
           Suas conexões <span>{currentConnections.length}</span>
@@ -195,17 +221,23 @@ export function Channels({
                       : 'primary'
                 }
               >
-                {statusLabel(c.status)}
+                {c.mode === 'fake' ? 'Demonstração' : statusLabel(c.status)}
               </Badge>
               <div className="connection-row-actions">
-                {c.channel === 'simulator' && (
+                {(c.channel === 'simulator' || c.mode === 'fake') && (
                   <Button
                     variant="secondary"
                     size="sm"
                     disabled={!canEdit}
                     onClick={() => {
                       setTesting(c);
-                      setContactId(`test-${crypto.randomUUID()}`);
+                      setContactId(
+                        c.channel === 'sms'
+                          ? '+5511998887777'
+                          : c.channel === 'whatsapp'
+                            ? '5511998887777'
+                            : `test-${crypto.randomUUID()}`,
+                      );
                       setTestNote('');
                     }}
                   >
@@ -253,13 +285,20 @@ export function Channels({
           if (!v) {
             setChannel(null);
             setToken('');
+            setCredentials({});
           }
         }}
-        title={channel === 'telegram' ? 'Conectar seu Telegram' : 'Adicionar um simulador'}
+        title={
+          channel === 'simulator'
+            ? 'Adicionar um simulador'
+            : `Conectar seu ${channelLabel(channel ?? 'simulator')}`
+        }
         description={
           channel === 'telegram'
             ? 'Você já tem seu bot. Vamos conectá-lo com segurança.'
-            : 'Um canal de teste que passa pelo mesmo motor e pela Inbox.'
+            : channel === 'simulator'
+              ? 'Um canal de teste que passa pelo mesmo motor e pela Inbox.'
+              : 'Use sua conta existente ou experimente com dados fictícios.'
         }
       >
         <form
@@ -317,6 +356,82 @@ export function Channels({
               </a>
             </>
           )}
+          {(channel === 'whatsapp' || channel === 'sms') && (
+            <>
+              <label>
+                Como deseja conectar?
+                <select value={mode} onChange={(e) => setMode(e.target.value as 'real' | 'fake')}>
+                  <option value="fake">Demonstração · sem credenciais ou envios reais</option>
+                  <option value="real">Minha conta existente · conexão real</option>
+                </select>
+              </label>
+              {mode === 'fake' ? (
+                <div className="crm-demo-notice">
+                  <FlaskConical size={17} />
+                  Teste com dados fictícios. Este canal não envia mensagens reais.
+                </div>
+              ) : (
+                <>
+                  {(channel === 'whatsapp'
+                    ? [
+                        ['phoneNumberId', 'ID do número'],
+                        ['wabaId', 'ID da conta WhatsApp Business'],
+                        ['accessToken', 'Token de acesso'],
+                        ['verifyToken', 'Token de verificação'],
+                        ['appSecret', 'Segredo do aplicativo Meta'],
+                      ]
+                    : [
+                        ['accountSid', 'Account SID da Twilio'],
+                        ['authToken', 'Auth Token'],
+                        ['from', 'Número Twilio (opcional com Messaging Service)'],
+                        ['messagingServiceSid', 'Messaging Service SID (opcional)'],
+                      ]
+                  ).map(([key, label]) => (
+                    <label key={key}>
+                      {label}
+                      <input
+                        type={
+                          ['accessToken', 'verifyToken', 'appSecret', 'authToken'].includes(key!)
+                            ? 'password'
+                            : 'text'
+                        }
+                        autoComplete="off"
+                        required={key !== 'from' && key !== 'messagingServiceSid'}
+                        value={credentials[key!] ?? ''}
+                        onChange={(e) =>
+                          setCredentials((old) => {
+                            const next = { ...old };
+                            if (e.target.value) next[key!] = e.target.value;
+                            else delete next[key!];
+                            return next;
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                  <p className="product-help">
+                    Use os dados da sua conta existente. Credenciais são criptografadas e nunca
+                    reaparecem no painel. Para receber mensagens, configure uma URL pública HTTPS e
+                    verifique o canal.
+                  </p>
+                </>
+              )}
+              {channel === 'sms' && (
+                <label>
+                  Preço estimado por segmento (R$)
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={smsPrice}
+                    onChange={(e) => setSmsPrice(e.target.value)}
+                  />
+                </label>
+              )}
+            </>
+          )}
           <Button disabled={busy}>
             {busy ? 'Validando...' : 'Conectar canal'}
             <Plug size={15} />
@@ -366,6 +481,15 @@ export function Channels({
             simulate();
           }}
         >
+          <label>
+            Identificador do cliente
+            <input
+              value={contactId}
+              onChange={(e) => setContactId(e.target.value)}
+              required
+              maxLength={80}
+            />
+          </label>
           <label>
             Mensagem
             <input

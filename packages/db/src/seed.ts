@@ -3,6 +3,7 @@ import { hash } from 'argon2';
 import { db } from './index';
 import { botTemplates } from '@bothub/flow-engine';
 import { Prisma } from './generated/client';
+import { sealCredentials } from '../../runtime/src/credentials';
 config({ path: '../../.env', quiet: true });
 const userId = 'demo-user';
 await db.user.upsert({
@@ -202,5 +203,129 @@ for (let day = 0; day < 30; day++) {
     });
   }
 }
+// Runnable fake channels use encrypted fictional credentials and never call providers.
+for (const channel of ['whatsapp', 'sms'] as const) {
+  const id = `demo-fake-${channel}`;
+  const credentials: Record<string, string> =
+    channel === 'whatsapp'
+      ? {
+          phoneNumberId: '100000000001',
+          wabaId: '100000000002',
+          accessToken: 'fake-development-token',
+          verifyToken: 'fake-development-verify',
+          appSecret: 'fake-development-secret',
+        }
+      : {
+          accountSid: 'AC' + '0'.repeat(32),
+          authToken: 'fake-development-token',
+          from: '+5511999990000',
+        };
+  await db.connection.upsert({
+    where: { id },
+    update: {},
+    create: {
+      id,
+      workspaceId,
+      botId: 'demo-bot-0',
+      channel,
+      mode: 'fake',
+      status: 'connected',
+      name: channel === 'whatsapp' ? 'WhatsApp · demonstração' : 'SMS · demonstração',
+      credentialCiphertext: sealCredentials(credentials),
+      settings: { smsPriceCents: 10 },
+    },
+  });
+  const names = [
+    'Camila Santos',
+    'Lucas Oliveira',
+    'Ana Ribeiro',
+    'Pedro Martins',
+    'Juliana Lima',
+    'Rafael Souza',
+  ];
+  for (const [i, name] of names.entries()) {
+    const contactId = `demo-crm-${channel}-${i}`;
+    await db.contact.upsert({
+      where: { id: contactId },
+      update: {},
+      create: {
+        id: contactId,
+        workspaceId,
+        connectionId: id,
+        externalContactId: channel === 'sms' ? `+55119876500${10 + i}` : `55119876500${10 + i}`,
+        name,
+        channel,
+        phone: `+55119876500${10 + i}`,
+        email: `${name.split(' ')[0]!.toLowerCase()}@example.com`,
+        tags: i % 2 ? ['cliente', 'agendamento'] : ['lead', 'interessado'],
+        fields: { city: 'São Paulo' },
+        consent: i !== 5,
+        consentSource: 'autorização fictícia de demonstração',
+        consentAt: new Date(),
+        marketingConsent: i < 4,
+        marketingSource: i < 4 ? 'formulário fictício de demonstração' : null,
+        marketingAt: i < 4 ? new Date() : null,
+      },
+    });
+    await db.consentRecord.upsert({
+      where: { id: contactId + '-consent' },
+      update: {},
+      create: {
+        id: contactId + '-consent',
+        workspaceId,
+        contactId,
+        scope: 'marketing',
+        granted: i < 4,
+        source: 'autorização fictícia de demonstração',
+      },
+    });
+  }
+}
+await db.segment.upsert({
+  where: { workspaceId_name: { workspaceId, name: 'Clientes com autorização' } },
+  update: {},
+  create: {
+    workspaceId,
+    name: 'Clientes com autorização',
+    filters: { tag: 'cliente', consent: true, marketingConsent: true },
+  },
+});
+await db.segment.upsert({
+  where: { workspaceId_name: { workspaceId, name: 'Leads interessados' } },
+  update: {},
+  create: { workspaceId, name: 'Leads interessados', filters: { tag: 'lead' } },
+});
+await db.whatsAppTemplate.upsert({
+  where: { id: 'demo-wa-template' },
+  update: {},
+  create: {
+    id: 'demo-wa-template',
+    workspaceId,
+    connectionId: 'demo-fake-whatsapp',
+    name: 'novidades_aurora',
+    language: 'pt_BR',
+    category: 'MARKETING',
+    status: 'APPROVED',
+    supported: true,
+    body: 'Olá, {{1}}! Outubro chegou com novidades no Estúdio Aurora. Quer conhecer? Responda PARAR para não receber mais mensagens.',
+  },
+});
+// An explicit draft keeps the demo safe and can be reviewed before activation.
+await db.campaign.upsert({
+  where: { id: 'demo-campaign' },
+  update: {},
+  create: {
+    id: 'demo-campaign',
+    workspaceId,
+    connectionId: 'demo-fake-sms',
+    name: 'Novidades de outubro',
+    content: {
+      type: 'text',
+      text: 'Olá, {{contact.first_name}}! Venha conhecer as novidades do Estúdio Aurora. Responda PARAR para não receber mais mensagens.',
+    },
+    filters: { tag: 'cliente' },
+    status: 'draft',
+  },
+});
 console.log('Demo workspace seeded. See README for local sign-in details.');
 await db.$disconnect();

@@ -160,7 +160,7 @@ export function AppShell({
           >
             <item.icon size={18} />
             <span>{item.label}</span>
-            {item.phase && item.phase > 2 && (
+            {item.phase && item.phase > 3 && (
               <span className="nav-coming" aria-label="Em breve">
                 ·
               </span>
@@ -309,7 +309,7 @@ export function AppShell({
         </main>
         <footer className="app-footer">
           <span>Feito para boas conversas.</span>
-          <span>{brand.name} · Fase 2</span>
+          <span>{brand.name} · Fase 3</span>
         </footer>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Acesso rápido">
@@ -371,7 +371,7 @@ export function AppShell({
                   >
                     <item.icon size={17} />
                     {item.label}
-                    {item.phase && item.phase > 2 && <Badge>Em breve</Badge>}
+                    {item.phase && item.phase > 3 && <Badge>Em breve</Badge>}
                     <ArrowRightIcon />
                   </button>
                 ))}

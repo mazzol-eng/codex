@@ -10,6 +10,7 @@ export default defineConfig([
   },
   globalIgnores([
     '**/.next/**',
+    '.data/**',
     '**/node_modules/**',
     'packages/db/src/generated/**',
     'playwright-report/**',

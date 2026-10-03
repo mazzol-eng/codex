@@ -2,6 +2,7 @@ import { AppShell } from '@/components/app-shell';
 import { getWorkspaceContext } from '@/lib/session';
 import './app.css';
 import './product.css';
+import './crm.css';
 export const dynamic = 'force-dynamic';
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const { session, workspace, workspaces, role } = await getWorkspaceContext();
