@@ -18,6 +18,8 @@ export interface OutboundMessage {
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'audio' | 'document';
   templateName?: string;
+  templateLanguage?: string;
+  templateParameters?: string[];
   purpose?: 'optout_confirmation';
 }
 export interface ChannelCapabilities {
@@ -38,6 +40,32 @@ export interface ChannelAdapter {
   ): Promise<{ externalId: string; status: 'sent' | 'failed' }>;
   acknowledge?(event: InboundEvent): Promise<void>;
   interpretStatus(payload: unknown): 'sent' | 'delivered' | 'read' | 'failed' | undefined;
+  normalizeStatuses?(payload: unknown): ChannelStatus[];
+}
+export interface ChannelStatus {
+  externalMessageId: string;
+  status: 'sent' | 'delivered' | 'read' | 'failed';
+  timestamp: string;
+}
+export function measureSms(text: string) {
+  const basic = new Set(
+    Array.from(
+      '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà',
+    ),
+  );
+  const extended = new Set(Array.from('\f^{}\\[~]|€'));
+  const characters = Array.from(text);
+  const gsm = characters.every((char) => basic.has(char) || extended.has(char));
+  const units = gsm
+    ? characters.reduce((n, char) => n + (extended.has(char) ? 2 : 1), 0)
+    : text.length;
+  const single = gsm ? 160 : 70;
+  return {
+    encoding: gsm ? ('GSM-7' as const) : ('UCS-2' as const),
+    characters: characters.length,
+    units,
+    segments: units === 0 ? 0 : units <= single ? 1 : Math.ceil(units / (gsm ? 153 : 67)),
+  };
 }
 export function degradeMessage(channel: Channel, message: OutboundMessage): OutboundMessage {
   const choices = message.choices ?? [];

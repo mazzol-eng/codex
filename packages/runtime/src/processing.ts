@@ -7,11 +7,14 @@ import {
   type SessionState,
   type EngineResult,
 } from '@bothub/flow-engine';
-import type { InboundEvent, OutboundMessage } from '@bothub/channels';
-import { ChannelError, type TelegramTransport } from '@bothub/channels/adapters';
+import { createHash } from 'node:crypto';
+import type { InboundEvent, OutboundMessage, ChannelStatus } from '@bothub/channels';
+import { ChannelError } from '@bothub/channels/adapters';
 import type { Prisma } from '../../db/src/generated/client';
-import { adapterFor } from './connections';
+import { adapterFor, type AdapterTransports } from './connections';
 import { notify } from './realtime';
+import { ProductError } from './bots';
+import { templateFingerprint } from './whatsapp-templates';
 let queue: QueuePort | undefined;
 export function getQueue() {
   return (queue ??=
@@ -59,6 +62,28 @@ export async function ingest(connection: { id: string; workspaceId: string }, ev
       .catch(() => {});
   return saved;
 }
+export async function ingestStatus(
+  connection: { id: string; workspaceId: string },
+  status: ChannelStatus,
+) {
+  const externalId = `status:${createHash('sha256').update(`${status.externalMessageId}:${status.status}`).digest('hex')}`;
+  return db.webhookEvent.upsert({
+    where: {
+      workspaceId_connectionId_externalId: {
+        workspaceId: connection.workspaceId,
+        connectionId: connection.id,
+        externalId,
+      },
+    },
+    create: {
+      workspaceId: connection.workspaceId,
+      connectionId: connection.id,
+      externalId,
+      payload: json({ kind: 'status', ...status }),
+    },
+    update: {},
+  });
+}
 async function storeResult(
   tx: Prisma.TransactionClient,
   workspaceId: string,
@@ -90,6 +115,18 @@ async function storeResult(
           consent: action.value,
           consentAt: new Date(),
           consentSource: 'opt-out por mensagem',
+          marketingConsent: false,
+          marketingAt: new Date(),
+          marketingSource: 'opt-out por mensagem',
+        },
+      });
+      await tx.consentRecord.create({
+        data: {
+          workspaceId,
+          contactId: conv.contactId,
+          scope: 'all',
+          granted: false,
+          source: 'opt-out por mensagem',
         },
       });
     }
@@ -130,7 +167,7 @@ async function incrementMetric(
 export async function processEvent(
   workspaceId: string,
   eventId: string,
-  transport?: TelegramTransport,
+  transport?: AdapterTransports,
 ) {
   let scheduled: { conversationId: string; expiresAt: number } | undefined;
   let callback: InboundEvent | undefined;
@@ -141,6 +178,42 @@ export async function processEvent(
         where: { workspaceId, id: eventId, status: 'pending' },
       });
       if (!initial) return;
+      const receipt = initial.payload as unknown as ChannelStatus & { kind?: string };
+      if (receipt.kind === 'status') {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${workspaceId + ':receipt:' + initial.connectionId + ':' + receipt.externalMessageId},0))`;
+        if (
+          !(await tx.webhookEvent.findFirst({
+            where: { workspaceId, id: eventId, status: 'pending' },
+          }))
+        )
+          return;
+        const m = await tx.message.findFirst({
+          where: {
+            workspaceId,
+            externalId: receipt.externalMessageId,
+            direction: 'outbound',
+            conversation: { connectionId: initial.connectionId },
+          },
+        });
+        if (!m) throw new ProductError('Recibo aguardando mensagem.', 409);
+        const ranks: Record<string, number> = { sent: 1, delivered: 2, read: 3 };
+        if (
+          (receipt.status === 'failed' && !['delivered', 'read'].includes(m.status)) ||
+          (ranks[receipt.status] ?? 0) > (ranks[m.status] ?? 0)
+        )
+          await tx.message.updateMany({
+            where: { workspaceId, id: m.id },
+            data: {
+              status: receipt.status,
+              lastError: receipt.status === 'failed' ? 'provider_delivery_failed' : null,
+            },
+          });
+        await tx.webhookEvent.updateMany({
+          where: { workspaceId, id: eventId },
+          data: { status: 'processed', lastError: null },
+        });
+        return;
+      }
       const event = initial.payload as unknown as InboundEvent;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${workspaceId + ':' + initial.connectionId + ':' + event.externalContactId}, 0))`;
       const record = await tx.webhookEvent.findFirst({
@@ -188,6 +261,9 @@ export async function processEvent(
           externalContactId: event.externalContactId,
           name: event.contactName ?? 'Cliente',
           channel: connection.channel,
+          phone: ['whatsapp', 'sms'].includes(connection.channel)
+            ? `${event.externalContactId.startsWith('+') ? '' : '+'}${event.externalContactId}`
+            : undefined,
           consent: true,
           consentAt: new Date(),
           consentSource: 'conversa iniciada pelo contato',
@@ -240,7 +316,8 @@ export async function processEvent(
       }
       let state = sessionState(conversation.session);
       state.mode = conversation.mode === 'human' ? 'human' : 'bot';
-      state.optedOut = !contact.consent || state.optedOut;
+      state.optedOut = !contact.consent;
+      state.tags = [...contact.tags];
       let version = conversation.versionId
         ? await tx.flowVersion.findFirst({ where: { workspaceId, id: conversation.versionId } })
         : null;
@@ -260,7 +337,17 @@ export async function processEvent(
       if (version && (connection.bot?.status === 'active' || isOptOut)) {
         result = runFlow(graphSchema.parse(version.graph), state, event, {
           now: Date.now(),
-          contact: { first_name: contact.name.split(' ')[0] ?? contact.name },
+          contact: {
+            ...Object.fromEntries(
+              Object.entries(contact.fields as Record<string, unknown>).map(([key, value]) => [
+                key,
+                String(value),
+              ]),
+            ),
+            first_name: contact.name.split(' ')[0] ?? contact.name,
+            email: contact.email ?? '',
+            phone: contact.phone ?? '',
+          },
           lastInboundAt: conversation.lastInboundAt?.getTime(),
         });
       } else if (isOptOut) {
@@ -348,7 +435,7 @@ export async function processEvent(
 export async function sendPending(
   messageId: string,
   workspaceId: string,
-  transport?: TelegramTransport,
+  transport?: AdapterTransports,
   now = Date.now(),
 ) {
   const message = await db.message.findFirst({
@@ -380,6 +467,40 @@ export async function sendPending(
       });
       return false;
     }
+    let blocked: string | undefined;
+    if (!['connected', 'pending', 'fixture'].includes(freshConnection.status))
+      blocked = 'connection_unavailable';
+    if (message.campaignId) {
+      const campaign = await tx.campaign.findFirst({
+        where: { workspaceId, id: message.campaignId },
+        include: { template: true },
+      });
+      if (!campaign || !['scheduled', 'sending'].includes(campaign.status))
+        blocked = 'campaign_cancelled';
+      else if (!freshContact.marketingConsent) blocked = 'no_marketing_consent';
+      else if (
+        connection.channel === 'whatsapp' &&
+        (!campaign.template ||
+          campaign.template.status !== 'APPROVED' ||
+          !campaign.template.supported ||
+          templateFingerprint(campaign.template) !== campaign.templateFingerprint)
+      )
+        blocked = 'template_unapproved';
+    }
+    if (connection.channel === 'whatsapp' && !content.templateName) {
+      const conversation = await tx.conversation.findFirstOrThrow({
+        where: { workspaceId, id: message.conversationId },
+      });
+      if (!conversation.lastInboundAt || now - conversation.lastInboundAt.getTime() >= 86400000)
+        blocked = 'whatsapp_window_expired';
+    }
+    if (blocked) {
+      await tx.message.updateMany({
+        where: { workspaceId, id: messageId, status: 'pending' },
+        data: { status: 'failed', lastError: blocked },
+      });
+      return false;
+    }
     const oldest = await tx.message.findFirst({
       where: {
         workspaceId,
@@ -391,7 +512,7 @@ export async function sendPending(
     });
     if (oldest?.id !== messageId) return false;
     if (
-      connection.channel === 'telegram' &&
+      connection.channel !== 'simulator' &&
       (freshConnection.nextSendAt.getTime() > now || freshContact.nextSendAt.getTime() > now)
     )
       return false;
@@ -400,14 +521,19 @@ export async function sendPending(
       data: { status: 'sending', attempts: { increment: 1 } },
     });
     if (!claim.count) return false;
-    if (connection.channel === 'telegram') {
+    if (connection.channel !== 'simulator') {
       await tx.connection.updateMany({
         where: { workspaceId, id: connection.id },
-        data: { nextSendAt: new Date(now + 34) },
+        data: {
+          nextSendAt: new Date(
+            now +
+              (connection.channel === 'telegram' ? 34 : connection.channel === 'sms' ? 1000 : 100),
+          ),
+        },
       });
       await tx.contact.updateMany({
         where: { workspaceId, id: contact.id },
-        data: { nextSendAt: new Date(now + 1000) },
+        data: { nextSendAt: new Date(now + (connection.channel === 'whatsapp' ? 6000 : 1000)) },
       });
     }
     return true;

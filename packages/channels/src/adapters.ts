@@ -227,3 +227,5 @@ export class FakeTelegramTransport implements TelegramTransport {
         : { message_id: this.calls.length };
   }
 }
+export * from './whatsapp';
+export * from './sms';

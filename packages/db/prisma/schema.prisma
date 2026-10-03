@@ -94,6 +94,11 @@ model Workspace {
   messages Message[]
   events WebhookEvent[]
   flowRuns FlowRun[]
+  segments Segment[]
+  whatsappTemplates WhatsAppTemplate[]
+  campaigns Campaign[]
+  recipients CampaignRecipient[]
+  consentRecords ConsentRecord[]
   @@map("workspaces")
 }
 model Membership {
@@ -137,13 +142,20 @@ model Connection {
   status String @default("pending")
   nextSendAt DateTime @default(now())
   credentialCiphertext String?
+  mode String @default("real")
+  externalAccountId String?
+  verificationHash String? @unique
+  settings Json @default("{}")
   botId String?
   bot Bot? @relation(fields: [workspaceId,botId], references: [workspaceId,id])
   contacts Contact[]
   conversations Conversation[]
   events WebhookEvent[]
+  templates WhatsAppTemplate[]
+  campaigns Campaign[]
   createdAt DateTime @default(now())
   @@unique([workspaceId,id])
+  @@unique([channel,externalAccountId])
   @@index([workspaceId])
   @@map("connections")
 }
@@ -153,6 +165,9 @@ model Contact {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name String
   channel String
+  email String?
+  phone String?
+  fields Json @default("{}")
   externalContactId String?
   connectionId String?
   connection Connection? @relation(fields: [workspaceId,connectionId], references: [workspaceId,id], onDelete: Cascade)
@@ -161,8 +176,13 @@ model Contact {
   consent Boolean @default(false)
   consentSource String?
   consentAt DateTime?
+  marketingConsent Boolean @default(false)
+  marketingSource String?
+  marketingAt DateTime?
   createdAt DateTime @default(now())
   conversations Conversation[]
+  recipients CampaignRecipient[]
+  consentRecords ConsentRecord[]
   @@unique([workspaceId,id])
   @@unique([workspaceId,connectionId,externalContactId])
   @@map("contacts")
@@ -241,6 +261,9 @@ model Message {
   conversation Conversation @relation(fields: [workspaceId,conversationId], references: [workspaceId,id], onDelete: Cascade)
   direction String
   sender String @default("bot")
+  campaignId String?
+  campaign Campaign? @relation(fields:[workspaceId,campaignId],references:[workspaceId,id],onDelete:NoAction)
+  recipients CampaignRecipient[]
   kind String @default("text")
   content Json
   status String @default("received")
@@ -252,6 +275,7 @@ model Message {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([workspaceId,idempotencyKey])
+  @@unique([workspaceId,id])
   @@index([workspaceId,conversationId,createdAt])
   @@index([status,nextAttemptAt])
   @@map("messages")
@@ -285,4 +309,92 @@ model FlowRun {
   createdAt DateTime @default(now())
   @@index([workspaceId,conversationId,createdAt])
   @@map("flow_runs")
+}
+
+model Segment {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  name String
+  filters Json
+  createdAt DateTime @default(now())
+  @@unique([workspaceId,id])
+  @@unique([workspaceId,name])
+  @@map("segments")
+}
+model ConsentRecord {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  contactId String
+  contact Contact @relation(fields:[workspaceId,contactId],references:[workspaceId,id],onDelete:Cascade)
+  scope String
+  granted Boolean
+  source String
+  createdAt DateTime @default(now())
+  @@index([workspaceId,contactId,createdAt])
+  @@map("consent_records")
+}
+model WhatsAppTemplate {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  connectionId String
+  connection Connection @relation(fields:[workspaceId,connectionId],references:[workspaceId,id],onDelete:Cascade)
+  externalId String?
+  name String
+  language String @default("pt_BR")
+  category String
+  body String
+  status String @default("PENDING")
+  supported Boolean @default(true)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  campaigns Campaign[]
+  @@unique([workspaceId,id])
+  @@unique([workspaceId,connectionId,name,language])
+  @@map("whatsapp_templates")
+}
+model Campaign {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  connectionId String
+  connection Connection @relation(fields:[workspaceId,connectionId],references:[workspaceId,id],onDelete:NoAction)
+  name String
+  status String @default("draft")
+  content Json
+  filters Json
+  templateId String?
+  template WhatsAppTemplate? @relation(fields:[workspaceId,templateId],references:[workspaceId,id],onDelete:NoAction)
+  templateFingerprint String?
+  estimatedCostCents Int @default(0)
+  scheduledAt DateTime?
+  startedAt DateTime?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  recipients CampaignRecipient[]
+  messages Message[]
+  @@unique([workspaceId,id])
+  @@index([status,scheduledAt])
+  @@map("campaigns")
+}
+model CampaignRecipient {
+  id String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  campaignId String
+  campaign Campaign @relation(fields:[workspaceId,campaignId],references:[workspaceId,id],onDelete:Cascade)
+  contactId String
+  contact Contact @relation(fields:[workspaceId,contactId],references:[workspaceId,id],onDelete:Cascade)
+  messageId String?
+  message Message? @relation(fields:[workspaceId,messageId],references:[workspaceId,id],onDelete:NoAction)
+  status String @default("pending")
+  reason String?
+  segments Int @default(0)
+  createdAt DateTime @default(now())
+  @@unique([workspaceId,campaignId,contactId])
+  @@index([workspaceId,campaignId,status])
+  @@map("campaign_recipients")
 }

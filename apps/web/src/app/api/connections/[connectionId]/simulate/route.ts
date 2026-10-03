@@ -15,7 +15,7 @@ export async function POST(
       where: {
         workspaceId: c.workspaceId,
         id: connectionId,
-        channel: 'simulator',
+        OR: [{ channel: 'simulator' }, { mode: 'fake', channel: { in: ['whatsapp', 'sms'] } }],
         status: 'connected',
       },
     });
@@ -23,14 +23,14 @@ export async function POST(
     const input = z
       .object({
         text: z.string().trim().min(1).max(2000),
-        externalContactId: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/),
+        externalContactId: z.string().regex(/^[a-zA-Z0-9_+-]{1,80}$/),
         externalMessageId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/),
       })
       .strict()
       .parse(await readJson(request, 5000));
     const event = await ingest(connection, {
       ...input,
-      channel: 'simulator',
+      channel: connection.channel as 'simulator' | 'whatsapp' | 'sms',
       connectionId,
       type: 'text',
       timestamp: new Date().toISOString(),
