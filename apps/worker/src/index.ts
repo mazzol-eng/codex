@@ -6,6 +6,7 @@ import {
   enqueueConversationResume,
   processEvent,
   getQueue,
+  processDueCampaigns,
 } from '@bothub/runtime';
 import { Worker } from 'bullmq';
 let stopping = false,
@@ -47,6 +48,7 @@ const tick = async () => {
   try {
     if (Date.now() - lastSchedule > 1000) {
       await enqueueDueSessions();
+      await processDueCampaigns();
       lastSchedule = Date.now();
     }
     await processPending();
@@ -59,7 +61,7 @@ const tick = async () => {
 const timer = setInterval(tick, 250);
 await tick();
 logger.info(
-  { service: 'worker', phase: 2, queue: process.env.QUEUE_MODE ?? 'memory' },
+  { service: 'worker', phase: 3, queue: process.env.QUEUE_MODE ?? 'memory' },
   'Worker ready',
 );
 for (const signal of ['SIGINT', 'SIGTERM'] as const)

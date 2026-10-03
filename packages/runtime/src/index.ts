@@ -4,3 +4,6 @@ export * from './credentials';
 export * from './processing';
 export * from './inbox';
 export * from './realtime';
+export * from './contacts';
+export * from './whatsapp-templates';
+export * from './campaigns';
