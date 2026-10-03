@@ -34,7 +34,7 @@ A lista de conversas fica à esquerda, as mensagens no centro e os detalhes do c
 
 ## 6. Conexões
 
-O Simulador funciona sem credenciais. A tela permite conectar seu Telegram já existente. WhatsApp e SMS reais estão indicados como recursos da Fase 3.
+O Simulador funciona sem credenciais. A tela permite conectar suas contas existentes do Telegram/WhatsApp e SMS oficial da Twilio. Modos de demonstração usam fakes claramente identificados e não fazem envios externos.
 
 ![Tela de canais e conexões](06-channels.png)
 
@@ -43,6 +43,42 @@ O Simulador funciona sem credenciais. A tela permite conectar seu Telegram já e
 O layout se adapta à tela menor, com menu móvel e navegação inferior.
 
 ![Painel no celular](07-mobile.png)
+
+## 8. Contatos e segmentos
+
+Cadastro por canal, tags, públicos salvos, busca e autorização para campanhas. Os contatos capturados são fictícios e os canais estão identificados como demonstração.
+
+![Contatos e segmentos do BotHub](08-contacts.png)
+
+## 9. Campanhas
+
+A lista mostra campanhas simuladas concluídas e uma agendada. Cada envio verifica as autorizações; contatos bloqueados aparecem como protegidos.
+
+![Campanhas com resultados e agendamento](09-campaigns.png)
+
+## 10. Antes de enviar
+
+A revisão mostra o público autorizado, quem fica fora e o conteúdo personalizado. SMS também mostra segmentos e custo estimado. A captura não confirma um novo envio.
+
+![Revisão de campanha SMS](10-campaign-review.png)
+
+## 11. Templates do WhatsApp
+
+O template desta captura tem aprovação **simulada**. Em conexões reais, a aprovação vem da Meta e pode ser sincronizada no painel.
+
+![Templates do WhatsApp em demonstração](11-whatsapp-templates.png)
+
+## 12. Sua conta existente
+
+Escolha demonstração para testar sem segredos, ou sua conta existente para informar os dados da API oficial. Nenhum novo bot externo será criado.
+
+![Conexão do WhatsApp sem criar outra conta](12-connect-whatsapp.png)
+
+## 13. Campanhas no celular
+
+O menu, as ações e os cartões se adaptam à tela menor.
+
+![Campanhas no celular](13-campaigns-mobile.png)
 
 ## Experimente no seu computador
 

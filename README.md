@@ -1,6 +1,6 @@
 # BotHub
 
-Plataforma de chatbots em pt-BR. Fases 0, 1 e 2: site, autenticação, dashboard, bots, editor visual, simulador, Telegram existente e Inbox.
+Plataforma de chatbots em pt-BR. Fases 0 a 3: site, autenticação, dashboard, editor visual, simulador, Inbox, canais oficiais, contatos e campanhas.
 
 ## Rodar localmente
 
@@ -32,9 +32,21 @@ O modo local padrão usa a outbox persistente do banco entre web e worker. Redis
 4. Clique **Publicar**. Em **Canais**, adicione um **Simulador**, escolha o bot e envie `/start` pelo botão **Testar conversa**.
 5. Abra a **Caixa de entrada** para acompanhar. Use **Assumir conversa**, responda, adicione notas internas ou devolva ao bot.
 
-Para conectar **seu bot do Telegram existente**, configure uma URL pública HTTPS, cole o token no painel e siga [docs/CHANNELS.md](docs/CHANNELS.md). Não é necessário criar outro bot. WhatsApp existente e SMS entram na Fase 3; as prévias atuais não enviam por esses canais.
+Para conectar **seu bot do Telegram existente**, configure uma URL pública HTTPS, cole o token no painel e siga [docs/CHANNELS.md](docs/CHANNELS.md). Não é necessário criar outro bot. WhatsApp Cloud API e SMS Twilio também reutilizam suas contas existentes. Escolha **Demonstração** para testar sem credenciais ou **Minha conta existente** para conectar de verdade.
 
 Mantenha web **e worker** ativos; `pnpm dev` inicia os dois. Após modificar o schema e executar `pnpm db:generate`, reinicie os processos para atualizar instâncias do cliente Prisma.
+
+## Contatos e campanhas
+
+O demo inclui WhatsApp e SMS **fakes**, credenciais fictícias criptografadas, 12 contatos com tags, segmentos salvos e um template aprovado apenas na demonstração. Nenhum canal externo recebe esses envios.
+
+1. Em **Contatos**, cadastre clientes ou importe CSV de até 1.000 linhas, mapeando nome, telefone/ID, e-mail e tags. Registre a origem da autorização; importações nunca reativam opt-outs existentes.
+2. Filtre por canal, tag ou busca e salve um segmento. Abra o perfil para editar dados, campos personalizados e autorizações.
+3. Em **Canais → Templates do WhatsApp**, crie textos de marketing/utilidade ou sincronize a aprovação da Meta. Templates com mídia, botões e autenticação ficam indicados como futuros.
+4. Em **Campanhas**, escolha a conexão, o público e a mensagem. WhatsApp exige template aprovado. SMS mostra caracteres, segmentos e custo estimado do público personalizado.
+5. Revise a prévia e confirme o envio, ou agende no fuso da empresa. O relatório apresenta enviadas, entregues, lidas, falhas, contatos protegidos e exportação CSV. Recibos dependem do canal.
+
+O worker precisa permanecer ativo, inclusive para agendamentos. Hospedagens gratuitas que hibernam não garantem atendimento ou disparos na hora marcada. Os testes validam os adaptadores reais usando transportes fake e payloads assinados; nenhum provedor foi testado com credenciais reais neste ambiente.
 
 ## Validar
 
@@ -60,6 +72,6 @@ Produção exige `AUTH_SECRET`, `ENCRYPTION_KEY`, URL HTTPS, banco/Redis privado
 
 ## Próximas fases
 
-Fase 3: WhatsApp Cloud API com sua conta existente, Twilio, contatos/segmentos/campanhas. Fase 4: analytics avançado, equipe/convites, API pública, cobrança e IA opcional. Fase 5: segurança, performance, acessibilidade e revisão final. Recursos futuros aparecem como **Em breve**.
+Fase 4: analytics avançado, equipe/convites, API pública, cobrança e IA opcional. Fase 5: segurança, performance, acessibilidade e revisão final. Recursos futuros aparecem como **Em breve**.
 
 Leia [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DECISIONS.md](docs/DECISIONS.md), [docs/FLOW_NODES.md](docs/FLOW_NODES.md), [docs/DELIVERY.md](docs/DELIVERY.md) e [AGENTS.md](AGENTS.md).

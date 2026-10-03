@@ -1,4 +1,4 @@
-# Entrega das Fases 0, 1 e 2
+# Entrega das Fases 0 a 3
 
 ## Fundação e produto inicial — Fases 0 e 1
 
@@ -54,6 +54,31 @@ O envio externo não oferece garantia de exatamente uma entrega: uma interrupç�
 
 ## Ambiente na nuvem
 
-As instruções reutilizáveis de instalação e inicialização foram salvas no rascunho de configuração do ambiente. Nenhuma configuração foi publicada nem houve deploy ou push remoto.
+As instruções reutilizáveis de instalação e inicialização foram salvas no rascunho de configuração do ambiente. Nenhuma configuração da nuvem foi publicada nem houve deploy. O código e a galeria foram enviados para a branch autorizada `codex/bothub-phase-2` no GitHub.
 
-A Fase 2 foi autorizada pelo pedido “Continue”. A implementação termina nesta fase; a integração do WhatsApp já existente será parte da Fase 3.
+A Fase 2 foi autorizada pelo pedido “Continue”. A Fase 3 foi autorizada pelos pedidos seguintes para continuar.
+
+## Canais, contatos e campanhas — Fase 3
+
+- Adaptadores oficiais Meta Cloud API e Twilio atrás de portas, com implementações fake, assinaturas de webhook, normalização de mensagens, mídia/opções e recibos de status. Credenciais criptografadas e retornos seguros ao navegador.
+- Conexão manual das contas existentes, teste de conexão, logs de eventos e modos de demonstração identificados. Nenhuma conta ou bot externo criado.
+- CRM com cadastro/perfil, busca e filtros, tags, campos personalizados, segmentos salvos, histórico de consentimento, importação CSV mapeada/atômica e exportação protegida contra fórmulas de planilha.
+- Templates WhatsApp de texto, marketing/utilidade, criação e sincronização de aprovação. Formatos avançados aparecem como futuros e são impedidos de enviar.
+- Campanhas por segmento/tag, personalização segura, prévia de público/consentimento e custo SMS, agendamento no fuso da empresa, outbox idempotente, limites de taxa/backoff, cancelamento de próximos envios e relatório CSV.
+- Revalidação de autorização, campanha e template no envio; janela WhatsApp verificada também no sender. Opt-out revoga campanhas naquele canal. Recibos não regridem de lido para entregue.
+- Novas telas responsivas e seed fake idempotente. Galeria com capturas do aplicativo em execução, sem montagens e sem credenciais reais.
+
+### Verificação da Fase 3
+
+- Lint, typecheck e build de produção aprovados; instalação com lockfile congelado/cache offline também aprovada.
+- **79 testes de unidade/integração** aprovados, com PostgreSQL real. Incluem contratos e assinaturas Meta/Twilio, segmentos GSM-7/UCS-2, importação atômica, autorização, chaves estrangeiras entre tenants, campanhas idempotentes, agendamento, cancelamento, opt-out e janela WhatsApp.
+- **11 testes Playwright** aprovados, incluindo cadastro/importação/segmento, revisão SMS, processamento pelo worker, relatório CSV, layout mobile, template WhatsApp aprovado na demonstração, campanha e webhook Meta assinado/deduplicado.
+- Os **três novos testes da Fase 3** também passaram no build de produção. Smoke confirma CSP com nonce sem unsafe-eval/inline em scripts, cookie secure/httpOnly/sameSite, login e novas telas sem erros de página.
+- **53 manifests de arquivos do build** verificados: nenhum arquivo privado de .data, .env ou cache local incluído.
+- Capturas reais feitas no aplicativo em execução com dados fictícios. Nenhuma conta real dos provedores foi utilizada; fixtures e transportes fake comprovam os contratos implementados.
+
+### Limites e próximo passo
+
+Públicos de até 1.000 contatos por campanha e CSV de até 1.000 linhas/200 KB. Contatos são separados por conexão. Aprovação é sincronizada manualmente. Templates de autenticação/mídia/botões e Embedded Signup ficam futuros. Estatísticas de respostas são aproximadas; entregas/leituras dependem de recibos do canal. Os planos e cobrança com limites mensais, equipe, API pública e analytics avançado são Fase 4.
+
+Agendamento depende de worker ativo e banco disponível. A plataforma não foi hospedada publicamente, não tem conta Meta/Twilio real validada e não recebeu auditoria formal de acessibilidade/Lighthouse. Docker continua com a limitação de download de imagens observada anteriormente; PostgreSQL local real foi usado para validação.

@@ -15,7 +15,7 @@
 `apps/web` contains the Next.js site and dashboard; `apps/worker` hosts asynchronous jobs.
 `packages/db` contains Prisma schema, migrations, seed and tenant-scoped repositories.
 `packages/core` contains ports, queue, logging and encryption. `packages/channels` defines
-channel contracts and Telegram/Simulator adapters. `packages/flow-engine` is pure TypeScript, with no I/O.
+channel contracts and official Telegram/WhatsApp/Twilio plus fake adapters. `packages/flow-engine` is pure TypeScript, with no I/O.
 `packages/runtime` composes the engine, tenant persistence, worker processing and realtime ports.
 `config/brand.ts` is the only brand/color source. `docs/DECISIONS.md` records tradeoffs.
 
@@ -28,7 +28,7 @@ Never log credentials or message bodies. Persist channel credentials only with A
 Business reads/writes must be scoped to an authorized workspace, checked server-side.
 Never trust a workspace ID or role from client input without checking membership.
 Use zod at boundaries, accessible controls, reduced-motion support and centralized tokens.
-Phase 2 is authorized. Future functionality must say “Em breve”.
+Phase 3 is authorized by the user's request to continue. Future functionality must say “Em breve”.
 Run lint/typecheck/tests at each phase boundary and keep changes in small commits.
 
 - Docker-free development database fallback: `pnpm services:local` in a separate terminal (PostgreSQL 17, loopback only). Never run it beside Compose on port 5432.

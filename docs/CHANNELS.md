@@ -23,16 +23,36 @@ Teclados inline usam IDs curtos (`c:<id>`, abaixo de 64 bytes); callbacks são c
 
 A execução local e os testes não precisam de rede. Para usar Telegram real, a instalação precisa alcançar `api.telegram.org` via HTTPS e ser acessível publicamente pelo Telegram. O transporte respeita o proxy e a confiança TLS do ambiente. O domínio foi incluído no rascunho de configuração para revisão; isso não aplica a permissão ao runtime atual. Revise os ajustes do ambiente quando for conectar seu bot.
 
-## WhatsApp existente — Fase 3
+## WhatsApp existente — API oficial da Meta
 
-Será usada somente a API oficial da Meta. A conexão reutilizará seu WABA e número Business com `phone_number_id`, WABA ID, token do System User e verify token; Embedded Signup poderá ser habilitado se houver app Meta configurado. A janela de 24h e a degradação de botões já têm testes no motor, mas o adaptador real, assinatura e templates aprovados ainda não estão implementados.
+Não usamos WhatsApp Web e não criamos outro bot, número ou conta Business.
 
-Não usamos bibliotecas de WhatsApp Web nem criamos outra conta externa.
+1. No Meta Business, use seu WABA e número já cadastrados na WhatsApp Business Platform. O número precisa estar disponível para a Cloud API. O acesso deve pertencer à sua empresa.
+2. No app Meta existente, consulte o **App Secret** em configurações básicas. Crie/consulte um System User no Business e conceda acesso à conta WhatsApp. Gere um token com `whatsapp_business_messaging` e `whatsapp_business_management`. Consulte **phone_number_id** e **WABA ID** em WhatsApp → Configuração da API. Não cole nenhum segredo em chat ou commit.
+3. Configure `ENCRYPTION_KEY` e `PUBLIC_WEBHOOK_URL` com a base pública HTTPS da instalação, sem caminho. A versão Graph padrão é `v23.0`, configurável por `META_GRAPH_VERSION` ou pelo adaptador; escolha uma versão suportada pelo seu app.
+4. Publique o fluxo no BotHub. Em **Canais → Conectar WhatsApp**, escolha **Minha conta existente**, informe os IDs, token, um verify token forte escolhido por você e App Secret. O servidor valida o número, associa o app ao WABA por `subscribed_apps` e criptografa as credenciais. O modo **Demonstração** dispensa esses dados e nunca chama a Meta.
+5. No app Meta → WhatsApp → Webhooks, configure a callback URL `https://SUA-BASE/api/webhooks/whatsapp` e o mesmo verify token. Assine o campo `messages`. O desafio `hub.challenge` só é respondido após verificar o token; a conexão então aparece como conectada. O Embedded Signup não está habilitado nesta etapa.
+6. Os POSTs validam `X-Hub-Signature-256` com App Secret antes de gravar qualquer evento. `phone_number_id` encaminha o evento para a conexão e o workspace corretos. Texto, botões/listas, mídia, localização e recibos são normalizados; o worker responde de forma assíncrona.
+7. Na tela **Templates do WhatsApp**, crie um texto de **Marketing** ou **Utilidade** em pt-BR. Use variáveis sequenciais `{{1}}`, `{{2}}` e exemplos para análise. Clique **Sincronizar status** para consultar a aprovação da Meta. Não existe aprovação manual no BotHub. No modo demo, a aprovação é explicitamente simulada.
+8. Campanhas exigem template **Aprovado**, compatível e vinculado à conexão selecionada, além de autorização do contato. Templates complexos com mídia/cabeçalho/botões e autenticação podem aparecer na sincronização como **Envio em breve**; não são enviados nesta versão. Use texto com instrução clara de descadastro.
 
-## SMS — Fase 3
+Mensagens comuns só podem ser enviadas dentro de 24 horas da última mensagem do cliente. Fora disso, campanhas usam templates aprovados; não há bypass na Inbox ou no worker. Até três opções viram botões; quatro a dez viram lista. A fila checa novamente autorização e aprovação antes de enviar. PARAR/SAIR/STOP/CANCELAR revogam autorização neste canal.
 
-Twilio será o provedor padrão, atrás de SmsProvider. Credenciais e assinatura de webhook serão implementadas junto com os testes das fixtures do provedor. A prévia atual transforma botões em respostas numeradas; não há envio de SMS real.
+Conectar um webhook ou associar um app ao WABA altera a configuração que atende sua conta hoje. Faça a migração com o responsável pelo serviço atual. Os adaptadores foram testados com fakes/fixtures, sem um token Meta real nem alteração da sua conta.
 
-## Credenciais e testes
+## SMS — Twilio
 
-Use `.env.example` para configuração da instalação. Não envie tokens em chat, commits ou prints. TelegramTransport possui implementação HTTP e fake; testes usam fixtures e o fake, sem chamar o Telegram. Uma chave inválida interrompe a conexão sem expor a credencial.
+1. Na sua conta Twilio existente, consulte **Account SID** e **Auth Token** no Console. Escolha um número habilitado para SMS ou um **Messaging Service SID** com remetente configurado; não é necessário cadastrar outra conta.
+2. Configure `PUBLIC_WEBHOOK_URL` com a mesma base pública HTTPS usada pelo provedor. Em **Canais → Conectar SMS**, selecione sua conta existente e preencha SID, token e número em E.164, ou Messaging Service. Defina o preço estimado **por segmento** em reais, conforme o contrato com seu provedor.
+3. O adaptador valida a conta. **Testar conexão** configura a URL de entrada no número existente ou Messaging Service. Os caminhos são `/api/webhooks/sms/:connectionId` e `/api/webhooks/sms/:connectionId/status`. O callback de status também é informado em cada envio.
+4. A assinatura `X-Twilio-Signature` é validada contra a URL pública canônica e os parâmetros de formulário, com Auth Token. Proxy reverso deve preservar query string e servir os mesmos caminhos; o servidor não confia em um Host/Forwarded recebido para reconstruir a URL assinada.
+5. O worker envia com limitação de taxa e backoff. Recibos atualizam enviado/entregue/falhou; SMS não oferece leitura geral. Botões viram opções numeradas e o motor reconhece respostas 1, 2, 3. Mídia em respostas de bot vira link de texto; campanhas SMS desta etapa usam texto.
+6. **Campanhas** apresenta GSM-7 ou UCS-2, caracteres e segmentos. GSM-7 admite 160 unidades em uma mensagem ou 153 por parte concatenada; UCS-2, 70 ou 67. Caracteres de extensão GSM-7 contam duas unidades; emojis podem usar duas unidades UTF-16. A prévia estima custo sobre todas as mensagens personalizadas autorizadas, inclusive a instrução PARAR.
+
+A estimativa não consulta câmbio, impostos ou tarifação real. O provedor cobra conforme seu contrato. O modo **Demonstração** simula mensagens sem credenciais, cobrança ou chamadas à Twilio. SmsProvider permite adicionar outro provedor mantendo os contratos do produto.
+
+## Rede, credenciais e testes
+
+Telegram precisa alcançar `api.telegram.org`; WhatsApp, `graph.facebook.com`; Twilio, `api.twilio.com` e `messaging.twilio.com`. São destinos HTTPS fixos e o transporte preserva proxy e confiança TLS do ambiente. A lista foi preparada no rascunho da nuvem para revisão, sem aplicar essa mudança ao runtime atual. Canais também precisam alcançar os webhooks públicos da sua instalação.
+
+Use `.env.example` para a configuração. Credenciais são fornecidas na tela e armazenadas em AES-256-GCM; nunca devolvidas ao front ou registradas nos logs. Tokens de verificação da Meta são localizados por hash. Não envie segredos em chat ou capturas. TelegramTransport, WhatsAppTransport e SmsProvider têm versões reais e fake. Testes usam payloads assinados e fakes, sem chamadas aos provedores. Nenhuma conexão real foi validada com sua conta neste ambiente.
