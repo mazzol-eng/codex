@@ -38,6 +38,12 @@ O comando inicia PostgreSQL 17 real apenas em `127.0.0.1:5432` e preserva `.data
 
 O modo local padrão usa a outbox persistente do banco entre web e worker. Redis é opcional para esse caminho; para BullMQ e Redis pub/sub, inicie o Redis do Compose e configure `QUEUE_MODE=redis`.
 
+### Pelo celular, no Codespaces
+
+Abra [Criar Codespace do BotHub](https://github.com/codespaces/new?repo=1400241689&ref=codex%2Fbothub-phase-2), confirme a branch preparada e a cota da sua conta. A configuração `.devcontainer` instala as dependências e inicia banco, site e worker automaticamente. Abra **Ports → 3000 — BotHub**, mantendo a porta privada, e entre em `/login?demo=1`.
+
+É um ambiente de demonstração sujeito a pausa e limites do GitHub. Nenhum Codespace foi criado automaticamente na sua conta. Veja [docs/CODESPACES.md](docs/CODESPACES.md) para retomar, diagnosticar e entender os limites.
+
 ## Sua primeira conversa
 
 1. Crie sua empresa ou entre no demo.

@@ -36,3 +36,4 @@ Run lint/typecheck/tests at each phase boundary and keep changes in small commit
 - Phase 2 local mode uses the PostgreSQL outbox across web/worker; set QUEUE_MODE=redis for BullMQ/pub-sub.
 - Restart web and worker after Prisma generation. Never build into .next while dev is running.
 - Connect existing external bots/accounts; never create another Telegram/WhatsApp account for onboarding.
+- Codespaces/mobile demo: `.devcontainer` installs pinned dependencies and starts `pnpm demo:cloud`. It supervises local PostgreSQL, idempotent seed, web and worker; port 3000 stays private by default. See `docs/CODESPACES.md`. This is development, not permanent hosting. Creating a Codespace requires separate GitHub account/API access; never equate Git push access with Codespaces permission.
