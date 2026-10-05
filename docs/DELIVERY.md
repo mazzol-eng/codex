@@ -82,3 +82,10 @@ A Fase 2 foi autorizada pelo pedido “Continue”. A Fase 3 foi autorizada pelo
 Públicos de até 1.000 contatos por campanha e CSV de até 1.000 linhas/200 KB. Contatos são separados por conexão. Aprovação é sincronizada manualmente. Templates de autenticação/mídia/botões e Embedded Signup ficam futuros. Estatísticas de respostas são aproximadas; entregas/leituras dependem de recibos do canal. Os planos e cobrança com limites mensais, equipe, API pública e analytics avançado são Fase 4.
 
 Agendamento depende de worker ativo e banco disponível. A plataforma não foi hospedada publicamente, não tem conta Meta/Twilio real validada e não recebeu auditoria formal de acessibilidade/Lighthouse. Docker continua com a limitação de download de imagens observada anteriormente; PostgreSQL local real foi usado para validação.
+
+### Revalidação da Fase 3 sem Docker
+
+- Corrigida a retomada do PostgreSQL após interrupções que deixam processos Linux encerrados e locks de sockets. O banco local usa TCP em loopback; processos ativos e erros de permissão continuam impedindo limpeza indevida, e os dados são preservados.
+- Seed idempotente, lint, typecheck e build aprovados. **88 testes de unidade/integração** passaram, incluindo nove novos casos da verificação de processos.
+- Os **três testes Playwright da Fase 3** passaram novamente em desenvolvimento: CRM/importação/segmento/campanha SMS/worker/CSV/mobile, template e campanha WhatsApp na demonstração, e desafio/assinatura/deduplicação Meta.
+- A suíte completa de 11 testes de navegador e os testes em produção descritos acima pertencem à validação anterior; nesta revalidação foram executados os três fluxos da Fase 3. Nenhuma credencial real, conta externa ou hospedagem pública foi utilizada.

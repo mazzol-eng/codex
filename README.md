@@ -4,7 +4,7 @@ Plataforma de chatbots em pt-BR. Fases 0 a 3: site, autenticação, dashboard, e
 
 ## Rodar localmente
 
-Requisitos: Node >=22.12, pnpm 11.19, Docker com Compose.
+Requisitos: Node >=22.12 e pnpm 11.19. Docker com Compose é opcional; veja a alternativa abaixo.
 
 ```sh
 pnpm install
@@ -20,7 +20,21 @@ O seed é idempotente e não exclui trabalho de usuários. Números e conversas 
 
 ### Sem Docker
 
-Em outro terminal, execute `pnpm services:local`. Esse comando inicia PostgreSQL 17 real em loopback e preserva `.data/postgres`. Depois rode `pnpm db:seed && pnpm dev`. Não execute esse PostgreSQL e o Compose na mesma porta.
+Na pasta do projeto, instale as dependências e inicie o banco:
+
+```sh
+pnpm install
+pnpm services:local
+```
+
+Mantenha esse terminal aberto. Abra outro terminal na mesma pasta e execute:
+
+```sh
+pnpm db:seed
+pnpm dev
+```
+
+O comando inicia PostgreSQL 17 real apenas em `127.0.0.1:5432` e preserva `.data/postgres`, inclusive após uma interrupção. Não execute esse PostgreSQL e o Compose na mesma porta. Para a demonstração, não são necessárias credenciais externas; as chaves de desenvolvimento são geradas automaticamente.
 
 O modo local padrão usa a outbox persistente do banco entre web e worker. Redis é opcional para esse caminho; para BullMQ e Redis pub/sub, inicie o Redis do Compose e configure `QUEUE_MODE=redis`.
 
