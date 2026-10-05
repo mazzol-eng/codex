@@ -1,6 +1,7 @@
 import EmbeddedPostgres from 'embedded-postgres';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { isProcessAlive } from './local-process';
 const directory = resolve('.data/postgres');
 mkdirSync(resolve('.data'), { recursive: true, mode: 0o700 });
 const postgres = new EmbeddedPostgres({
@@ -10,7 +11,7 @@ const postgres = new EmbeddedPostgres({
   port: 5432,
   persistent: true,
   authMethod: 'scram-sha-256',
-  postgresFlags: ['-h', '127.0.0.1'],
+  postgresFlags: ['-h', '127.0.0.1', '-c', 'unix_socket_directories='],
   initdbFlags: ['--locale=C'],
   onLog: () => {},
   onError: () => {},
@@ -34,13 +35,10 @@ if (existsSync(postmasterFile)) {
   const pid = Number(readFileSync(postmasterFile, 'utf8').split('\n')[0]);
   if (!Number.isInteger(pid) || pid <= 1)
     throw new Error('Invalid database PID file; inspect it before restarting.');
-  try {
-    process.kill(pid, 0);
+  if (isProcessAlive(pid)) {
     throw new Error('Database PID is still active. Inspect the running process before restarting.');
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
-    unlinkSync(postmasterFile);
   }
+  unlinkSync(postmasterFile);
 }
 if (!existsSync(resolve(directory, 'PG_VERSION'))) await postgres.initialise();
 await postgres.start();
