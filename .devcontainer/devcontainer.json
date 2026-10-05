@@ -1,0 +1,19 @@
+{
+  "name": "BotHub — demonstração",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-bookworm",
+  "remoteUser": "node",
+  "hostRequirements": { "cpus": 2, "memory": "4gb" },
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "BotHub",
+      "onAutoForward": "openBrowser",
+      "protocol": "http"
+    }
+  },
+  "otherPortsAttributes": { "onAutoForward": "ignore" },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "waitFor": "postCreateCommand",
+  "customizations": { "codespaces": { "openFiles": ["docs/CODESPACES.md"] } }
+}

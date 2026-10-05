@@ -20,6 +20,7 @@
     "db:seed": "pnpm db:migrate && pnpm --filter @bothub/db seed",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "services:local": "tsx scripts/local-postgres.ts",
+    "demo:cloud": "tsx scripts/cloud-demo.ts",
     "postinstall": "pnpm db:generate"
   },
   "devDependencies": {

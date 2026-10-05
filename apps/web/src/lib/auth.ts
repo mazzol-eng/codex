@@ -95,7 +95,7 @@ export const auth = betterAuth({
   },
   session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
   advanced: {
-    useSecureCookies: process.env.NODE_ENV === 'production',
+    useSecureCookies: process.env.NODE_ENV === 'production' || process.env.CODESPACES === 'true',
     defaultCookieAttributes: { httpOnly: true, sameSite: 'lax' },
   },
   plugins: [twoFactor({ issuer: brand.name }), nextCookies()],

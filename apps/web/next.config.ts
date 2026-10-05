@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
-import { PHASE_PRODUCTION_BUILD } from 'next/constants';
+import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { resolve } from 'node:path';
+import { codespaceOrigin } from '../../config/cloud-preview';
 const config: NextConfig = {
   logging: { incomingRequests: false },
   devIndicators: false,
@@ -30,6 +31,13 @@ const config: NextConfig = {
 };
 const getConfig = (phase: string) => {
   if (phase === PHASE_PRODUCTION_BUILD) process.env.BOTHUB_BUILD = '1';
+  if (phase === PHASE_DEVELOPMENT_SERVER) {
+    const origin = codespaceOrigin();
+    if (origin) {
+      process.env.BETTER_AUTH_URL = origin;
+      return { ...config, allowedDevOrigins: [new URL(origin).hostname] };
+    }
+  }
   return config;
 };
 export default getConfig;
