@@ -110,6 +110,27 @@ test('demo dashboard, filters, command palette and mobile navigation', async ({ 
   await expect(page.getByRole('heading', { name: 'Boas conversas começam aqui' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Abrir editor' }).first()).toBeVisible();
 });
+test('login distinguishes rejected origins and unavailable server from incorrect credentials', async ({
+  page,
+}) => {
+  let status = 403;
+  await page.route('**/api/auth/sign-in/email', (route) =>
+    route.fulfill({
+      status,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: status === 403 ? 'INVALID_ORIGIN' : 'INTERNAL_SERVER_ERROR' }),
+    }),
+  );
+  await page.goto('/login?demo=1');
+  await page.getByRole('button', { name: /Preencher conta demo/ }).click();
+  await page.getByRole('button', { name: 'Entrar na minha conta' }).click();
+  await expect(page.locator('.form-alert')).toContainText('Este endereço não foi autorizado');
+  status = 500;
+  await page.getByRole('button', { name: 'Entrar na minha conta' }).click();
+  await expect(page.locator('.form-alert')).toContainText(
+    'O servidor não conseguiu concluir o login',
+  );
+});
 test('password recovery with fake delivery, one-use token and revoked sessions', async ({
   page,
 }) => {

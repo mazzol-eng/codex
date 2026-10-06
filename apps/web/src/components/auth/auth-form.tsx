@@ -55,9 +55,15 @@ export function AuthForm({
         setError(
           result.error.status === 429
             ? 'Muitas tentativas. Aguarde um minuto e tente novamente.'
-            : signup
-              ? 'Não foi possível criar a conta. Confira os dados ou tente entrar.'
-              : 'E-mail ou senha incorretos. Confira e tente novamente.',
+            : result.error.status === 403
+              ? 'Este endereço não foi autorizado para entrar. Confira o endereço do site e reinicie a demonstração.'
+              : result.error.status >= 500
+                ? 'O servidor não conseguiu concluir o login. Tente novamente em instantes.'
+                : signup
+                  ? 'Não foi possível criar a conta. Confira os dados ou tente entrar.'
+                  : result.error.status === 401
+                    ? 'E-mail ou senha incorretos. Confira e tente novamente.'
+                    : 'Não foi possível entrar. Atualize a página e tente novamente.',
         );
         return;
       }

@@ -6,6 +6,7 @@
 - Services: `docker compose up -d --wait`.
 - Database: `pnpm db:generate`; `pnpm db:seed` applies migrations then seeds demo data.
 - Run: `pnpm dev` (web port 3000; asynchronous worker).
+- Diagnose demo login: `pnpm demo:check` (development only; prints no passwords, hashes or tokens).
 - Validate: `pnpm lint`, `pnpm typecheck`, `pnpm test`.
 - Browser tests: `pnpm test:e2e` (packaged Chromium on Linux; run `pnpm exec playwright install chromium` once on other platforms).
 - Production build: `pnpm build`. Format: `pnpm format`.

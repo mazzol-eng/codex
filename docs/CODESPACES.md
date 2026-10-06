@@ -33,6 +33,10 @@ O BotHub impede que outras páginas o incorporem em um iframe. A opção **Open 
 
 O comando `pnpm demo:cloud`, quando executado no Codespaces, também mostra esse endereço para copiar. Se ainda ficar em branco na aba externa, abra `/health` no mesmo endereço. O resultado esperado é JSON com `status: "ok"` e `database: "ok"`. Se o resultado diferir, consulte o log de inicialização. Essa verificação separa um problema de inicialização de um problema de exibição; não confirma a causa de qualquer tela branca sem observar o endereço e o erro.
 
+### Login demo recusado
+
+Execute `pnpm demo:check` em outro terminal enquanto `pnpm demo:cloud` permanece ativo. O diagnóstico informa se a conta existe, se a senha pública da demonstração corresponde ao hash e se o servidor aceita a origem HTTPS do Codespaces. Ele usa uma senha aleatória incorreta na requisição de teste e não imprime senhas, hashes, cookies ou tokens. Uma resposta HTTP 401 com o código esperado confirma que a origem foi aceita; HTTP 403 indica rejeição do acesso, HTTP 429 indica limite de tentativas e outras respostas exigem investigação. O teste não comprova que o navegador recebeu uma sessão. Compartilhe apenas o resultado desse comando. O seed preserva mudanças feitas na senha da conta demo; executá-lo novamente não redefine essa senha.
+
 ## Limites
 
 - A disponibilidade, franquia gratuita, armazenamento e cobrança pertencem ao GitHub. Confira os valores mostrados na sua conta; não há promessa de gratuidade ilimitada. Pare o Codespace após testar e considere também o uso de armazenamento.

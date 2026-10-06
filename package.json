@@ -21,6 +21,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "services:local": "tsx scripts/local-postgres.ts",
     "demo:cloud": "tsx scripts/cloud-demo.ts",
+    "demo:check": "pnpm --filter @bothub/db exec tsx src/check-demo.ts",
     "postinstall": "pnpm db:generate"
   },
   "devDependencies": {
