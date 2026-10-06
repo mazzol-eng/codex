@@ -10,3 +10,10 @@ export function codespaceOrigin(environment: CloudEnvironment = process.env): st
     throw new Error('This demo supports the official app.github.dev forwarding domain.');
   return `https://${name}-3000.${domain}`;
 }
+
+export function authOrigin(environment: CloudEnvironment = process.env): string {
+  return (
+    codespaceOrigin(environment) ??
+    new URL(environment.BETTER_AUTH_URL ?? 'http://localhost:3000').origin
+  );
+}

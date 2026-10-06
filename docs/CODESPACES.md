@@ -23,6 +23,8 @@ Mensagens de inicialização ficam em `.data/cloud-demo.log`. Para diagnóstico,
 
 O login usa o endereço HTTPS do Codespace atual, aceita somente esse hostname adicional nos assets de desenvolvimento e utiliza cookies secure/httpOnly/sameSite. Não há permissão genérica para qualquer domínio `github.dev`.
 
+A autenticação resolve esse endereço diretamente a partir de `CODESPACE_NAME`, inclusive quando existe um `BETTER_AUTH_URL` antigo apontando para localhost. A lista de origens confiáveis contém somente o endereço canônico. Depois de atualizar a configuração, interrompa o terminal da demonstração com Ctrl+C e inicie `pnpm demo:cloud` novamente.
+
 ### Tela branca na prévia
 
 O BotHub impede que outras páginas o incorporem em um iframe. A opção **Open Preview / Simple Browser** dentro do editor pode ficar em branco por esse motivo. Abra o site em uma aba real do navegador:

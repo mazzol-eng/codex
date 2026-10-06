@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { db } from '@bothub/db';
 import { brand } from '../../../../config/brand';
+import { authOrigin } from '../../../../config/cloud-preview';
 import { FakeEmail, HttpEmail, logger, type EmailPort } from '@bothub/core';
 const secretPath = resolve(process.cwd(), '../../.data/auth-secret');
 const mailboxPath = resolve(process.cwd(), '../../.data/last-email.json');
@@ -54,7 +55,8 @@ export const auth = betterAuth({
       logger.error({ service: 'auth' }, 'Authentication request failed');
     },
   },
-  baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+  baseURL: authOrigin(),
+  trustedOrigins: [authOrigin()],
   secret: getSecret(),
   database: prismaAdapter(db, { provider: 'postgresql' }),
   emailAndPassword: {

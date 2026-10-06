@@ -33,7 +33,15 @@ try {
   // Deliberately use an incorrect password: this checks origin handling without creating a session.
   const response = await fetch('http://localhost:3000/api/auth/sign-in/email', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Origin: origin },
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: origin,
+      Referer: `${origin}/login?demo=1`,
+      Cookie: 'bothub_diagnostic=1',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Dest': 'empty',
+    },
     body: JSON.stringify({ email: 'demo@bothub.local', password: randomBytes(32).toString('hex') }),
     signal: AbortSignal.timeout(15000),
   });
