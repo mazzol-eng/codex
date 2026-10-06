@@ -17,3 +17,15 @@ export function authOrigin(environment: CloudEnvironment = process.env): string 
     new URL(environment.BETTER_AUTH_URL ?? 'http://localhost:3000').origin
   );
 }
+
+export function diagnosticOrigin(value: string | null): string {
+  if (value === null || value === '') return 'ausente';
+  if (value === 'null') return 'null';
+  if (value.length > 2048) return 'inválido';
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.origin : 'inválido';
+  } catch {
+    return 'inválido';
+  }
+}

@@ -118,18 +118,44 @@ test('login distinguishes rejected origins and unavailable server from incorrect
     route.fulfill({
       status,
       contentType: 'application/json',
-      body: JSON.stringify({ code: status === 403 ? 'INVALID_ORIGIN' : 'INTERNAL_SERVER_ERROR' }),
+      body: JSON.stringify({
+        code: status === 403 ? 'INVALID_ORIGIN' : 'INTERNAL_SERVER_ERROR',
+        diagnostic: {
+          expectedOrigin: 'https://demo.example',
+          receivedOrigin: 'http://localhost:3000',
+        },
+      }),
     }),
   );
   await page.goto('/login?demo=1');
   await page.getByRole('button', { name: /Preencher conta demo/ }).click();
   await page.getByRole('button', { name: 'Entrar na minha conta' }).click();
   await expect(page.locator('.form-alert')).toContainText('Este endereço não foi autorizado');
+  await expect(page.locator('.form-alert')).toContainText('Esperado: https://demo.example');
+  await expect(page.locator('.form-alert')).toContainText('Recebido: http://localhost:3000');
   status = 500;
   await page.getByRole('button', { name: 'Entrar na minha conta' }).click();
   await expect(page.locator('.form-alert')).toContainText(
     'O servidor não conseguiu concluir o login',
   );
+  await expect(page.locator('.form-alert')).not.toContainText('Esperado:');
+});
+test('rejected login reports only origin diagnostics in development', async ({ request }) => {
+  const response = await request.post('/api/auth/sign-in/email', {
+    headers: { Origin: 'https://untrusted.example' },
+    data: { email: 'demo@bothub.local', password: 'Wrong-Diagnostic-Password!' },
+  });
+  expect(response.status()).toBe(403);
+  await expect(response.json()).resolves.toMatchObject({
+    code: 'INVALID_ORIGIN',
+    diagnostic: {
+      expectedOrigin: 'http://localhost:3000',
+      receivedOrigin: 'https://untrusted.example',
+    },
+  });
+  const text = await response.text();
+  expect(text).not.toContain('Wrong-Diagnostic-Password!');
+  expect(text).not.toContain('demo@bothub.local');
 });
 test('password recovery with fake delivery, one-use token and revoked sessions', async ({
   page,

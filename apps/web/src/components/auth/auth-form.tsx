@@ -33,6 +33,10 @@ export function AuthForm({
   const params = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [originDiagnostic, setOriginDiagnostic] = useState<{
+    expectedOrigin: string;
+    receivedOrigin: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const form = useForm<Values>({
     resolver: zodResolver(
@@ -42,6 +46,7 @@ export function AuthForm({
   });
   async function submit(values: Values) {
     setError('');
+    setOriginDiagnostic(null);
     setBusy(true);
     try {
       const result = signup
@@ -52,6 +57,17 @@ export function AuthForm({
           })
         : await authClient.signIn.email({ email: values.email, password: values.password });
       if (result.error) {
+        if (!signup && params.get('demo') === '1' && result.error.status === 403) {
+          const diagnostic = z
+            .object({
+              diagnostic: z.object({
+                expectedOrigin: z.string().max(2048),
+                receivedOrigin: z.string().max(2048),
+              }),
+            })
+            .safeParse(result.error);
+          if (diagnostic.success) setOriginDiagnostic(diagnostic.data.diagnostic);
+        }
         setError(
           result.error.status === 429
             ? 'Muitas tentativas. Aguarde um minuto e tente novamente.'
@@ -179,6 +195,14 @@ export function AuthForm({
         {error && (
           <p role="alert" className="form-alert">
             {error}
+            {originDiagnostic && (
+              <span>
+                <br />
+                Esperado: {originDiagnostic.expectedOrigin}
+                <br />
+                Recebido: {originDiagnostic.receivedOrigin}
+              </span>
+            )}
           </p>
         )}
         <Button type="submit" className="auth-submit" disabled={busy}>
