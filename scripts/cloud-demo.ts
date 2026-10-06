@@ -17,6 +17,7 @@ if (existsSync(lock)) {
     throw new Error('Inspect the invalid cloud demo PID file.');
   if (isProcessAlive(pid)) {
     console.log('The cloud demo process is already running. Check Ports → BotHub.');
+    if (origin) console.log(`Open in a separate browser tab: ${origin}/login?demo=1`);
     process.exit(0);
   }
   unlinkSync(lock);
@@ -133,6 +134,7 @@ try {
   }
   if (!ready) throw new Error('Cloud demo did not become healthy within 45 seconds.');
   console.log('BotHub demo is healthy. Open Ports → BotHub, then login?demo=1.');
+  if (origin) console.log(`Open in a separate browser tab: ${origin}/login?demo=1`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'Cloud demo startup failed.');
   shutdown(1);

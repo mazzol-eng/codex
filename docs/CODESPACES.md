@@ -23,6 +23,16 @@ Mensagens de inicialização ficam em `.data/cloud-demo.log`. Para diagnóstico,
 
 O login usa o endereço HTTPS do Codespace atual, aceita somente esse hostname adicional nos assets de desenvolvimento e utiliza cookies secure/httpOnly/sameSite. Não há permissão genérica para qualquer domínio `github.dev`.
 
+### Tela branca na prévia
+
+O BotHub impede que outras páginas o incorporem em um iframe. A opção **Open Preview / Simple Browser** dentro do editor pode ficar em branco por esse motivo. Abra o site em uma aba real do navegador:
+
+1. Em **Ports**, use **Copy Address / Copiar endereço** na porta 3000.
+2. Abra uma nova aba do Chrome ou Safari, cole o endereço copiado e permaneça conectado à sua conta GitHub. O site da porta deve ter um endereço HTTPS com `-3000.app.github.dev`.
+3. Acrescente `/login?demo=1` ao endereço para entrar na demonstração.
+
+O comando `pnpm demo:cloud`, quando executado no Codespaces, também mostra esse endereço para copiar. Se ainda ficar em branco na aba externa, abra `/health` no mesmo endereço. O resultado esperado é JSON com `status: "ok"` e `database: "ok"`. Se o resultado diferir, consulte o log de inicialização. Essa verificação separa um problema de inicialização de um problema de exibição; não confirma a causa de qualquer tela branca sem observar o endereço e o erro.
+
 ## Limites
 
 - A disponibilidade, franquia gratuita, armazenamento e cobrança pertencem ao GitHub. Confira os valores mostrados na sua conta; não há promessa de gratuidade ilimitada. Pare o Codespace após testar e considere também o uso de armazenamento.
